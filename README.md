@@ -14,4 +14,4 @@ There is no external dependency, although it does require C++14 since UVW utiliz
 
 ### License
 
-UVW is licensed under (BSD-3-Clause)[LICENSE].
+UVW is licensed under [BSD-3-Clause](LICENSE).
