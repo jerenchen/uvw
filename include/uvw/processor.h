@@ -1,7 +1,9 @@
 #ifndef UVW_PROCESSOR_H
 #define UVW_PROCESSOR_H
 
+#include <unordered_set>
 #include <iostream>
+
 
 namespace uvw
 {
@@ -11,6 +13,16 @@ namespace uvw
   {
     friend class Workspace;
 
+    protected:
+
+    std::unordered_set<Duo> var_keys_;
+
+    template<typename T>
+    bool del_var(const std::string& label)
+    {
+      return uvw::ws::del<T>(Duo(this, label));
+    }
+
     public:
     
     Processor();
@@ -19,6 +31,7 @@ namespace uvw
     virtual bool initialize() {return false;}
     virtual bool preprocess() {return false;}
     virtual bool process() {return false;}
+    virtual void cleanup() {} // where del_var takes place...
 
     template<typename T>
     bool new_var(const std::string& label, T& var);
@@ -40,6 +53,7 @@ uvw::Processor::Processor()
 uvw::Processor::~Processor()
 {
   uvw::ws::untrack_(this);
+  cleanup();
 }
 
 template<typename T>
@@ -51,17 +65,26 @@ T& uvw::Processor::var(const std::string& label)
 template<typename T>
 bool uvw::Processor::new_var(const std::string& label, T& var)
 {
-  if (uvw::ws::has_var(Duo(this, label)))
+  Duo key(this, label);
+  if (key.is_null())
+  {
+    std::cout << "Failure: invalid empty label." << std::endl;
+    return false;
+  }
+
+  if (uvw::ws::has_var(key))
   {
     std::cout << "Warning: var " << label << " exists." << std::endl;
     return false;
   }
 
-  if (!uvw::ws::add<T>(Duo(this, label), &var))
+  if (!uvw::ws::add<T>(key, &var))
   {
     std::cout << "Failure: Unable to add var " << label << std::endl;
     return false;
   }
+
+  var_keys_.insert(key);
 
   return true;
 }

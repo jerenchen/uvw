@@ -19,6 +19,7 @@ namespace uvw
     friend class Processor;
 
     Duo key_;
+    Duo src_;
     size_t type_; // std::typeinfo::hash_code()
 
     protected:
@@ -32,16 +33,22 @@ namespace uvw
     Variable(): type_(0) {}
 
     const Duo& key() {return key_;}
-    const std::string label() const {return key_.var;}
+    const std::string label() {return key_.var;}
     Processor* proc();
 
     template<typename T> bool is_of_type();
     template<typename T> static bool is_null(const T& obj);
 
+    void unlink() {src_ = Duo(nullptr,"");}
+    bool link(const Variable& src);
+    const Duo source() {return src_;}
+
     protected:
     template<class T> static T null_;
     template<class T> static size_t var_type;
   };
+
+  // impl.
 
   template<class T> T Variable::null_;
   template<class T> size_t Variable::var_type = typeid(Variable::null_<T>).hash_code();
@@ -52,6 +59,17 @@ namespace uvw
   template<typename T> bool Variable::is_of_type()
   {
     return (var_type<T> == type_);
+  }
+
+  bool Variable::link(const Variable& src)
+  {
+    if (type_ != src.type_)
+    {
+      unlink();
+      return false;
+    }
+    src_ = Duo(src.key_);
+    return true;
   }
 
   using var = Variable;
