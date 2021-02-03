@@ -1,7 +1,8 @@
 #ifndef UVW_PROCESSOR_H
 #define UVW_PROCESSOR_H
 
-#include <iostream>
+#include <unordered_set>
+
 
 namespace uvw
 {
@@ -11,61 +12,67 @@ namespace uvw
   {
     friend class Workspace;
 
-    std::string label_; 
+    protected:
+
+    std::unordered_set<Duohash> var_keys_;
 
     public:
     
-    Processor(const std::string& label = "");
+    Processor();
+    Processor(const Processor& p);
     virtual ~Processor();
 
-    virtual bool initialize() {return false;}
-    virtual bool preprocess() {return false;}
-    virtual bool process() {return false;}
+    Processor& operator=(const Processor& p);
+
+    virtual bool initialize() {return true;}
+    virtual bool preprocess() {return true;}
+    virtual bool process() {return true;}
 
     template<typename T>
-    bool new_var(const std::string& label);
+    bool reg_var(const std::string& label, Var<T>& var);
     template<typename T>
-    T& var(const std::string& label);
+    T& ref(const std::string& label);
+    Variable* get(const std::string& label);
   };
+
 };
 
 // implementation
-
-#include "variable.h"
-
-uvw::Processor::Processor(const std::string& label): 
-  label_(label)
-{
-  uvw::ws::track_(this);
-}
-
-uvw::Processor::~Processor()
-{
-  uvw::ws::untrack_(this);
-}
+#include <iostream>
 
 template<typename T>
-T& uvw::Processor::var(const std::string& label)
+bool uvw::Processor::reg_var(const std::string& label, Var<T>& v)
 {
-  return uvw::ws::get<T>(label);
-}
+  Duohash key(this, label);
+  v.key_ = key;
+  v.data_ptr_ = &v.value_;
 
-template<typename T>
-bool uvw::Processor::new_var(const std::string& label)
-{
-  if (uvw::ws::has_var(label))
+  if (key.is_null())
   {
-    std::cout << "Warning: var " << label << " exists." << std::endl;
+    std::cout << "Failure: invalid empty label." << std::endl;
     return false;
   }
 
-  if (!uvw::ws::add<T>(label))
+  if (uvw::ws::has(key))
   {
-    std::cout << "Failure: Unable to add var " << label << std::endl;
+    std::cout << "Warning: var '" << label << "' exists." << std::endl;
     return false;
   }
+
+  if (!uvw::ws::add<T>(key, v))
+  {
+    std::cout << "Failure: Unable to add var '" << label << "'" << std::endl;
+    return false;
+  }
+
+  var_keys_.insert(key);
 
   return true;
+}
+
+template<typename T> T& uvw::Processor::ref(const std::string& label)
+{
+  return uvw::ws::ref<T>(uvw::Duohash(this, label));
 }
 
 #endif
