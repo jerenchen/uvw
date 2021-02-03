@@ -11,7 +11,7 @@ namespace uvw
   {
     friend class Workspace;
 
-    std::string label_; 
+    std::string label_;
 
     public:
     
@@ -25,7 +25,7 @@ namespace uvw
     virtual bool process() {return false;}
 
     template<typename T>
-    bool new_var(const std::string& label);
+    bool new_var(const std::string& label, T& var);
     template<typename T>
     T& var(const std::string& label);
   };
@@ -54,7 +54,7 @@ T& uvw::Processor::var(const std::string& label)
 }
 
 template<typename T>
-bool uvw::Processor::new_var(const std::string& label)
+bool uvw::Processor::new_var(const std::string& label, T& var)
 {
   if (uvw::ws::has_var(Duo(this, label)))
   {
@@ -62,13 +62,22 @@ bool uvw::Processor::new_var(const std::string& label)
     return false;
   }
 
-  if (!uvw::ws::add<T>(Duo(this, label)))
+  if (!uvw::ws::add<T>(Duo(this, label), &var))
   {
     std::cout << "Failure: Unable to add var " << label << std::endl;
     return false;
   }
 
   return true;
+}
+
+uvw::Processor* uvw::Variable::proc()
+{
+  if (key_.ptr)
+  {
+    return static_cast<Processor*>(key_.ptr);
+  }
+  return nullptr;
 }
 
 #endif
