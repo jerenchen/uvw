@@ -13,6 +13,7 @@ namespace uvw
 
     Duo(void* proc = nullptr, const std::string& label = std::string()):
       ptr(proc), var(label) {}
+    Duo(const Duo& key) {ptr = key.ptr; var = key.var;}
   };
   bool operator==(const Duo& lhs, const Duo& rhs) {
       return lhs.ptr == rhs.ptr && lhs.var == rhs.var;

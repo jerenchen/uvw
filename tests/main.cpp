@@ -5,6 +5,9 @@ using namespace uvw;
 
 class MyProc: public Processor
 {
+  int x_, z_;
+  double y_;
+
   public:
   MyProc(): Processor("MyProc")
   {
@@ -14,20 +17,15 @@ class MyProc: public Processor
   bool initialize() override
   {
     return (
-      new_var<double>("y") &&
-      new_var<int>("x") &&
-      new_var<int>("z")
+      new_var<double>("y", y_) &&
+      new_var<int>("x", x_) &&
+      new_var<int>("z", z_)
     );
   }
 
   bool process() override
   {
-    auto& x = var<int>("x");
-    auto& y = var<double>("y");
-    auto& z = var<int>("z");
-    
-    z = x * y;
-
+    z_ = x_ * y_;
     return true;
   }
 };
@@ -37,10 +35,9 @@ int main(int argc, char * argv[])
   std::cout << "Adding new proc with vars \'x\' \'y\' & \'z\'..." << std::endl;
   MyProc proc;
 
-  Processor* ptr = *(ws::procs().begin());
-  Duo kx(ptr,"x");
-  Duo ky(ptr,"y");
-  Duo kz(ptr,"z");
+  Duo kx(&proc,"x");
+  Duo ky(&proc,"y");
+  Duo kz(&proc,"z");
 
   auto& x = ws::get<int>(kx);
   x = 3;
@@ -53,7 +50,7 @@ int main(int argc, char * argv[])
   proc.process();
 
   auto& z = ws::get<int>(kz);
-  std::cout << "\'z\' equals " << ws::get<int>(kz) << std::endl;
+  std::cout << "\'z\' equals " << z << std::endl;
 
   return 1;
 }

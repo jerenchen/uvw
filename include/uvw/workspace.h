@@ -19,7 +19,7 @@ namespace uvw
     protected:
 
     static std::unordered_map<Duo, Variable> all_vars_;
-    template<class T> static std::unordered_map<Duo, T> vars_;
+    template<class T> static std::unordered_map<Duo, T*> vars_;
 
     public:
 
@@ -55,19 +55,20 @@ namespace uvw
     template<typename T>
     static T& get(const Duo& key)
     {
-      return has<T>(key)? vars_<T>[key] : Variable::null_<T>;
+      return (has<T>(key) && vars_<T>[key])? 
+        *(vars_<T>[key]) : Variable::null_<T>;
     }
 
     template<typename T>
-    static bool add(const Duo& key)
+    static bool add(const Duo& key, T* var)
     {
       if (has_var(key))
       {
         return false;
       }
 
-      vars_<T>[key] = T();
-      all_vars_[key] = Variable(key.var, Variable::var_type<T>);
+      vars_<T>[key] = var;
+      all_vars_[key] = Variable(key, Variable::var_type<T>);
 
       return true;
     }
@@ -104,11 +105,11 @@ namespace uvw
 
     static std::unordered_map<Duo, Variable>& vars() {return all_vars_;}
     static std::set<Processor*>& procs() {return Workspace::procs_;}
-    
+
   };
 
   std::unordered_map<Duo, Variable> Workspace::all_vars_;
-  template<class T> std::unordered_map<Duo, T> Workspace::vars_;
+  template<class T> std::unordered_map<Duo, T*> Workspace::vars_;
   std::set<Processor*> Workspace::procs_;
   using ws = Workspace;
 };

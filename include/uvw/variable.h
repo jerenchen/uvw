@@ -1,29 +1,39 @@
 #ifndef UVW_VARIABLE_H
 #define UVW_VARIABLE_H
 
+#include "duohash.h"
+
 #include <unordered_map>
 #include <iostream>
 #include <typeinfo>
 
+
 namespace uvw
 {
   class Workspace;
+  class Processor;
 
   class Variable
   {
     friend class Workspace;
+    friend class Processor;
 
-    std::string label_;
+    Duo key_;
     size_t type_; // std::typeinfo::hash_code()
 
-    public:
+    protected:
 
     Variable(
-      const std::string& label = "",
+      const Duo& key,
       size_t type_code = 0
-    ): label_(label), type_(type_code) {}
+    ): key_(key), type_(type_code) {}
 
-    const std::string label() const {return label_;}
+    public:
+    Variable(): type_(0) {}
+
+    const Duo& key() {return key_;}
+    const std::string label() const {return key_.var;}
+    Processor* proc();
 
     template<typename T> bool is_of_type();
     template<typename T> static bool is_null(const T& obj);
