@@ -7,9 +7,10 @@ class MyProc: public Processor
 {
   int x_, z_;
   double y_;
+  std::string name_;
 
   public:
-  MyProc(): Processor("MyProc")
+  MyProc(): Processor()
   {
     initialize();
   }
@@ -19,7 +20,8 @@ class MyProc: public Processor
     return (
       new_var<double>("y", y_) &&
       new_var<int>("x", x_) &&
-      new_var<int>("z", z_)
+      new_var<int>("z", z_) &&
+      new_var<std::string>("name", name_)
     );
   }
 

@@ -11,14 +11,10 @@ namespace uvw
   {
     friend class Workspace;
 
-    std::string label_;
-
     public:
     
-    Processor(const std::string& label = "");
+    Processor();
     virtual ~Processor();
-
-    const std::string& label() const {return label_;}
 
     virtual bool initialize() {return false;}
     virtual bool preprocess() {return false;}
@@ -36,8 +32,7 @@ namespace uvw
 #include "duohash.h"
 #include "variable.h"
 
-uvw::Processor::Processor(const std::string& label): 
-  label_(label)
+uvw::Processor::Processor()
 {
   uvw::ws::track_(this);
 }
