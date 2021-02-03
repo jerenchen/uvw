@@ -18,6 +18,8 @@ namespace uvw
     Processor(const std::string& label = "");
     virtual ~Processor();
 
+    const std::string& label() const {return label_;}
+
     virtual bool initialize() {return false;}
     virtual bool preprocess() {return false;}
     virtual bool process() {return false;}
@@ -31,6 +33,7 @@ namespace uvw
 
 // implementation
 
+#include "duohash.h"
 #include "variable.h"
 
 uvw::Processor::Processor(const std::string& label): 
@@ -47,19 +50,19 @@ uvw::Processor::~Processor()
 template<typename T>
 T& uvw::Processor::var(const std::string& label)
 {
-  return uvw::ws::get<T>(label);
+  return uvw::ws::get<T>(Duo(this, label));
 }
 
 template<typename T>
 bool uvw::Processor::new_var(const std::string& label)
 {
-  if (uvw::ws::has_var(label))
+  if (uvw::ws::has_var(Duo(this, label)))
   {
     std::cout << "Warning: var " << label << " exists." << std::endl;
     return false;
   }
 
-  if (!uvw::ws::add<T>(label))
+  if (!uvw::ws::add<T>(Duo(this, label)))
   {
     std::cout << "Failure: Unable to add var " << label << std::endl;
     return false;

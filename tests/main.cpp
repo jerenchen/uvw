@@ -37,23 +37,23 @@ int main(int argc, char * argv[])
   std::cout << "Adding new proc with vars \'x\' \'y\' & \'z\'..." << std::endl;
   MyProc proc;
 
-  std::cout << "\'x\' exists? " << ws::has_var("x") << std::endl;
-  std::cout << "\'y\' exists? " << ws::has_var("y") << std::endl;
-  std::cout << "\'z\' exists? " << ws::has_var("z") << std::endl;
-  std::cout << "\'w\' exists? " << ws::has_var("w") << std::endl;
+  Processor* ptr = *(ws::procs().begin());
+  Duo kx(ptr,"x");
+  Duo ky(ptr,"y");
+  Duo kz(ptr,"z");
 
-  auto& x = ws::get<int>("x");
+  auto& x = ws::get<int>(kx);
   x = 3;
-  std::cout << "\'x\' is set to " << ws::get<int>("x") << std::endl;
-  auto& y = ws::get<double>("y");
+  std::cout << "\'x\' is set to " << ws::get<int>(kx) << std::endl;
+  auto& y = ws::get<double>(ky);
   y = 7;
-  std::cout << "\'y\' is set to " << ws::get<double>("y") << std::endl;
+  std::cout << "\'y\' is set to " << ws::get<double>(ky) << std::endl;
 
   std::cout << "Processing \'z = x * y\'..." << std::endl;
   proc.process();
 
-  auto& z = ws::get<int>("z");
-  std::cout << "\'z\' equals " << ws::get<int>("z") << std::endl;
+  auto& z = ws::get<int>(kz);
+  std::cout << "\'z\' equals " << ws::get<int>(kz) << std::endl;
 
   return 1;
 }
