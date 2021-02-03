@@ -23,6 +23,8 @@ namespace uvw
       size_t type_code = 0
     ): label_(label), type_(type_code) {}
 
+    const std::string label() const {return label_;}
+
     template<typename T> bool is_of_type();
     template<typename T> static bool is_null(const T& obj);
 
