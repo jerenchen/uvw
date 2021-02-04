@@ -17,12 +17,6 @@ namespace uvw
 
     std::unordered_set<Duo> var_keys_;
 
-    template<typename T>
-    bool del_var(const std::string& label)
-    {
-      return uvw::ws::del<T>(Duo(this, label));
-    }
-
     public:
     
     Processor();
@@ -31,13 +25,13 @@ namespace uvw
     virtual bool initialize() {return false;}
     virtual bool preprocess() {return false;}
     virtual bool process() {return false;}
-    virtual void cleanup() {} // where del_var takes place...
 
     template<typename T>
-    bool new_var(const std::string& label, T& var);
+    bool reg_var(const std::string& label, Var<T>& var);
     template<typename T>
-    T& var(const std::string& label);
+    T& ref(const std::string& label);
   };
+
 };
 
 // implementation
@@ -52,33 +46,34 @@ uvw::Processor::Processor()
 
 uvw::Processor::~Processor()
 {
+  // de-register proc & vars
   uvw::ws::untrack_(this);
-  cleanup();
+  for (auto& key : var_keys_)
+  {
+    uvw::ws::del(key);
+  };
 }
 
 template<typename T>
-T& uvw::Processor::var(const std::string& label)
-{
-  return uvw::ws::get<T>(Duo(this, label));
-}
-
-template<typename T>
-bool uvw::Processor::new_var(const std::string& label, T& var)
+bool uvw::Processor::reg_var(const std::string& label, Var<T>& v)
 {
   Duo key(this, label);
+  v.key_ = key;
+  v.data_ptr_ = &v.value_;
+
   if (key.is_null())
   {
     std::cout << "Failure: invalid empty label." << std::endl;
     return false;
   }
 
-  if (uvw::ws::has_var(key))
+  if (uvw::ws::has(key))
   {
     std::cout << "Warning: var " << label << " exists." << std::endl;
     return false;
   }
 
-  if (!uvw::ws::add<T>(key, &var))
+  if (!uvw::ws::add<T>(key, v))
   {
     std::cout << "Failure: Unable to add var " << label << std::endl;
     return false;
@@ -91,9 +86,9 @@ bool uvw::Processor::new_var(const std::string& label, T& var)
 
 uvw::Processor* uvw::Variable::proc()
 {
-  if (key_.ptr)
+  if (key_.raw_ptr)
   {
-    return static_cast<Processor*>(key_.ptr);
+    return static_cast<Processor*>(key_.raw_ptr);
   }
   return nullptr;
 }
@@ -104,37 +99,42 @@ uvw::Processor* uvw::Variable::proc()
 std::vector<uvw::Duo> uvw::Workspace::schedule(const uvw::Duo& key)
 {
   std::vector<uvw::Duo> res;
-  if (!uvw::Workspace::has_var(key))
+  if (!uvw::Workspace::has(key))
   {
     return res;
   }
 
   std::queue<uvw::Processor*> queue_proc;
-  queue_proc.push(uvw::Workspace::all_vars_[key].proc());
+  uvw::Processor* proc = uvw::Workspace::vars_[key]->proc();
+  if (!proc)
+  {
+    std::cout << "Warning: null proc found for " << key << std::endl;
+    return res;
+  }
+  queue_proc.push(proc);
 
   std::stack<uvw::Duo> stack_vkey;
   while (queue_proc.size())
   {
-    uvw::Processor* p_ = queue_proc.front();
+    proc = queue_proc.front();
     queue_proc.pop();
 
-    for (auto& k_ : p_->var_keys_)
+    for (auto& vk : proc->var_keys_)
     {
-      if (!uvw::Workspace::has_var(k_))
+      if (!uvw::Workspace::has(vk))
       {
         continue;
       }
+      Variable* var = uvw::Workspace::vars_[vk];
 
-      auto& var = uvw::Workspace::all_vars_[k_];
-
-      if (uvw::Workspace::has_var(var.source()))
+      if (uvw::Workspace::has(var->src()))
       {
-        auto& src = uvw::Workspace::all_vars_[var.source()];
-        uvw::Processor* dep_proc = src.proc();
-        if (dep_proc)
+        Variable* src = uvw::Workspace::vars_[var->src()];
+        uvw::Processor* src_proc = src->proc();
+        if (src_proc)
         {
-          queue_proc.push(dep_proc);
-          stack_vkey.push(k_);
+          queue_proc.push(src_proc);
+          stack_vkey.push(vk);
         }
       }
     }
@@ -150,30 +150,33 @@ std::vector<uvw::Duo> uvw::Workspace::schedule(const uvw::Duo& key)
 
 bool uvw::Workspace::execute(const std::vector<uvw::Duo>& seq)
 {
-  std::unordered_set<void*> visited_procs;
+  std::unordered_set<void*> marked_processed;
 
-  uvw::Processor* curr = nullptr;
+  uvw::Variable* var = nullptr;
   for (const auto& key : seq)
   {
-    // Assuming var & its source are validated by schedule...
-    auto& var = uvw::Workspace::all_vars_[key];
-    auto* proc = uvw::Workspace::all_vars_[var.source()].proc();
-    if (visited_procs.find(proc) == visited_procs.end())
+    // Assuming var & its src are validated by schedule...
+    var = uvw::Workspace::vars_[key];
+    auto* proc = uvw::Workspace::vars_[var->src()]->proc();
+    if (marked_processed.find(proc) == marked_processed.end())
     {
-      // TODO: option to terminate if process failed
-      proc->process();
-      visited_procs.insert(proc);
+      if (!proc->process())
+      {
+        return false;
+      }
+      marked_processed.insert(proc);
     }
     // var is ready to pull
-    std::cout << "Pulling var " << var.label() << std::endl;
-    // ...
-    curr = var.proc();
+    var->pull();
   }
 
-  if (uvw::Workspace::exists_(curr) &&
-    visited_procs.find(curr) == visited_procs.end())
+  if (var && uvw::Workspace::exists_(var->proc()))
   {
-    curr->process();
+    auto* proc = var->proc();
+    if (marked_processed.find(proc) == marked_processed.end())
+    {
+      proc->process();
+    }
   }
 
   return true;

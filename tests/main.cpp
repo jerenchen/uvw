@@ -1,42 +1,33 @@
-#include <uvw.h>
-#include <iostream>
 
+#include <uvw.h>
 using namespace uvw;
 
 // Multply proc
 class MultProc: public Processor
 {
-  double x_, y_, z_;
-  std::string name_;
-
   public:
+  Var<double> x_, y_, z_;
+
   MultProc(): Processor()
   {
     initialize();
   }
 
-  void cleanup() override
-  {
-    del_var<double>("x");
-    del_var<double>("y");
-    del_var<double>("z");
-    del_var<std::string>("name");
-  }
-
   bool initialize() override
   {
     return (
-      new_var<double>("y", y_) &&
-      new_var<double>("x", x_) &&
-      new_var<double>("z", z_) &&
-      new_var<std::string>("name", name_)
+      reg_var<double>("y", y_) &&
+      reg_var<double>("x", x_) &&
+      reg_var<double>("z", z_)
     );
   }
 
   bool process() override
   {
-    std::cout << "Processing 'Mult'..." << std::endl;
-    z_ = x_ * y_;
+    auto& x = x_();
+    auto& y = y_();
+    std::cout << "Processing " << x << " '*' " << y << "..." << std::endl;
+    z_() = x * y;
     return true;
   }
 };
@@ -44,35 +35,30 @@ class MultProc: public Processor
 // Addition Proc
 class AddProc: public Processor
 {
-  double a_, b_, c_;
-
   public:
+  Var<double> a_, b_, c_;
+
   AddProc(): Processor()
   {
     initialize();
   }
 
-  void cleanup() override
-  {
-    for (auto& label : {"a", "b", "c"})
-    {
-      del_var<double>(label);
-    }
-  }
-
   bool initialize() override
   {
     return (
-      new_var<double>("a", a_) &&
-      new_var<double>("b", b_) &&
-      new_var<double>("c", c_)
+      reg_var<double>("a", a_) &&
+      reg_var<double>("b", b_) &&
+      reg_var<double>("c", c_)
     );
   }
 
   bool process() override
   {
-    std::cout << "Processing 'Add'..." << std::endl;
-    c_ = a_ + b_;
+    auto& c = c_();
+    auto& b = b_();
+    auto& a = a_();
+    std::cout << "Processing " << a << " '+' " << b << "..." << std::endl;
+    c = a + b;
     return true;
   }
 };
@@ -86,10 +72,10 @@ int main(int argc, char * argv[])
   Duo add_b(&add,"b");
   Duo add_c(&add,"c");
 
-  ws::get<double>(add_a) = 2;
-  std::cout << "\'add.a\' is set to " << add.var<double>("a") << std::endl;
-  ws::get<double>(add_b) = 3;
-  std::cout << "\'add.b\' is set to " << add.var<double>("b") << std::endl;
+  add.a_() = 2;
+  std::cout << "\'add.a\' is set to " << ws::ref<double>(add_a) << std::endl;
+  ws::ref<double>(add_b) = 3;
+  std::cout << "\'add.b\' is set to " << add.b_() << std::endl;
 
   std::cout << "Adding 'mult' proc with vars \'x\' \'y\' & \'z\'..." << std::endl;
   MultProc mult;
@@ -103,14 +89,14 @@ int main(int argc, char * argv[])
     std::cout << "Linked \'mult.x\' to \'add.c\'..." << std::endl;
   }
 
-  ws::get<double>(mult_y) = 7;
-  std::cout << "\'mult.y\' is set to " << mult.var<double>("y") << std::endl;
+  mult.y_.set(7);
+  std::cout << "\'mult.y\' is set to " << mult.y_.get() << std::endl;
 
   std::cout << "Processing \'z = (a + b) * y\'..." << std::endl;
   auto seq = ws::schedule(mult_z);
   ws::execute(seq);
 
-  std::cout << "\'z\' equals " << ws::get<int>(mult_z) << std::endl;
+  std::cout << "\'z\' equals " << mult.z_() << std::endl;
 
   return 1;
 }
