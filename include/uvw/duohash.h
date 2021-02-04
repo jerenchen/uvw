@@ -6,17 +6,31 @@
 
 namespace uvw
 {
+  class Variable;
+  class Workspace;
+  class Processor;
   struct Duo
   {
-    void* ptr;
-    std::string var;
+    void* raw_ptr;
+    std::string var_str;
+
+    public:
 
     Duo(void* proc = nullptr, const std::string& label = std::string()):
-      ptr(proc), var(label) {}
-    Duo(const Duo& key) {ptr = key.ptr; var = key.var;}
+      raw_ptr(proc), var_str(label) {}
+    Duo(const Duo& key) {this->raw_ptr = key.raw_ptr; this->var_str = key.var_str;}
+
+    friend std::ostream& operator<<(std::ostream& os, const Duo& key)
+    {
+      return os << "[" << key.var_str << "]@" << key.raw_ptr;
+    }
+
+    const bool is_null() const {return raw_ptr == nullptr || var_str.empty();}
   };
-  bool operator==(const Duo& lhs, const Duo& rhs) {
-      return lhs.ptr == rhs.ptr && lhs.var == rhs.var;
+
+  bool operator==(const Duo& lhs, const Duo& rhs)
+  {
+      return lhs.raw_ptr == rhs.raw_ptr && lhs.var_str == rhs.var_str;
   }
 };
 
@@ -27,8 +41,8 @@ namespace std
   {
     std::size_t operator()(uvw::Duo const& duo) const noexcept
     {
-        return std::hash<void*>{}(duo.ptr) ^
-          (std::hash<std::string>{}(duo.var) << 1); 
+        return std::hash<void*>{}(duo.raw_ptr) ^
+          (std::hash<std::string>{}(duo.var_str) << 1);
     }
   };
 }
