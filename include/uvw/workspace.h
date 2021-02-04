@@ -14,6 +14,7 @@ namespace uvw
 
   class Workspace
   {
+    friend class Variable;
     friend class Processor;
 
     protected:
@@ -72,6 +73,18 @@ namespace uvw
 
       return true;
     }
+
+    static bool link(const Duo& src, const Duo& dst)
+    {
+      if (!has_var(src) || !has_var(dst))
+      {
+        return false;
+      }
+      return all_vars_[dst].link(all_vars_[src]);
+    }
+
+    static std::vector<Duo> schedule(const Duo& key);
+    static bool execute(const std::vector<Duo>& seq);
 
     protected:
 

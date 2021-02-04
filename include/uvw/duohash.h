@@ -15,7 +15,7 @@ namespace uvw
       ptr(proc), var(label) {}
     Duo(const Duo& key) {ptr = key.ptr; var = key.var;}
 
-    bool is_null() {return ptr == nullptr || var.empty();}
+    const bool is_null() const {return ptr == nullptr || var.empty();}
   };
   bool operator==(const Duo& lhs, const Duo& rhs)
   {

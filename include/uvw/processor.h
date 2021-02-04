@@ -98,4 +98,85 @@ uvw::Processor* uvw::Variable::proc()
   return nullptr;
 }
 
+#include <queue>
+#include <stack>
+
+std::vector<uvw::Duo> uvw::Workspace::schedule(const uvw::Duo& key)
+{
+  std::vector<uvw::Duo> res;
+  if (!uvw::Workspace::has_var(key))
+  {
+    return res;
+  }
+
+  std::queue<uvw::Processor*> queue_proc;
+  queue_proc.push(uvw::Workspace::all_vars_[key].proc());
+
+  std::stack<uvw::Duo> stack_vkey;
+  while (queue_proc.size())
+  {
+    uvw::Processor* p_ = queue_proc.front();
+    queue_proc.pop();
+
+    for (auto& k_ : p_->var_keys_)
+    {
+      if (!uvw::Workspace::has_var(k_))
+      {
+        continue;
+      }
+
+      auto& var = uvw::Workspace::all_vars_[k_];
+
+      if (uvw::Workspace::has_var(var.source()))
+      {
+        auto& src = uvw::Workspace::all_vars_[var.source()];
+        uvw::Processor* dep_proc = src.proc();
+        if (dep_proc)
+        {
+          queue_proc.push(dep_proc);
+          stack_vkey.push(k_);
+        }
+      }
+    }
+  }
+
+  while (stack_vkey.size())
+  {
+    res.push_back(stack_vkey.top());
+    stack_vkey.pop();
+  }
+  return res;
+}
+
+bool uvw::Workspace::execute(const std::vector<uvw::Duo>& seq)
+{
+  std::unordered_set<void*> visited_procs;
+
+  uvw::Processor* curr = nullptr;
+  for (const auto& key : seq)
+  {
+    // Assuming var & its source are validated by schedule...
+    auto& var = uvw::Workspace::all_vars_[key];
+    auto* proc = uvw::Workspace::all_vars_[var.source()].proc();
+    if (visited_procs.find(proc) == visited_procs.end())
+    {
+      // TODO: option to terminate if process failed
+      proc->process();
+      visited_procs.insert(proc);
+    }
+    // var is ready to pull
+    std::cout << "Pulling var " << var.label() << std::endl;
+    // ...
+    curr = var.proc();
+  }
+
+  if (uvw::Workspace::exists_(curr) &&
+    visited_procs.find(curr) == visited_procs.end())
+  {
+    curr->process();
+  }
+
+  return true;
+}
+
 #endif
