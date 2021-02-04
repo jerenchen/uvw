@@ -148,9 +148,9 @@ std::vector<uvw::Duo> uvw::Workspace::schedule(const uvw::Duo& key)
   return res;
 }
 
-bool uvw::Workspace::execute(const std::vector<uvw::Duo>& seq)
+bool uvw::Workspace::execute(const std::vector<uvw::Duo>& seq, bool preprocess)
 {
-  std::unordered_set<void*> marked_processed;
+  std::unordered_set<void*> visited;
 
   uvw::Variable* var = nullptr;
   for (const auto& key : seq)
@@ -158,13 +158,22 @@ bool uvw::Workspace::execute(const std::vector<uvw::Duo>& seq)
     // Assuming var & its src are validated by schedule...
     var = uvw::Workspace::vars_[key];
     auto* proc = uvw::Workspace::vars_[var->src()]->proc();
-    if (marked_processed.find(proc) == marked_processed.end())
+    if (visited.find(proc) == visited.end())
     {
+      if (preprocess)
+      {
+        if (!proc->preprocess())
+        {
+          return false;
+        }
+      }
+
       if (!proc->process())
       {
         return false;
       }
-      marked_processed.insert(proc);
+
+      visited.insert(proc);
     }
     // var is ready to pull
     var->pull();
@@ -173,9 +182,16 @@ bool uvw::Workspace::execute(const std::vector<uvw::Duo>& seq)
   if (var && uvw::Workspace::exists_(var->proc()))
   {
     auto* proc = var->proc();
-    if (marked_processed.find(proc) == marked_processed.end())
+    if (visited.find(proc) == visited.end())
     {
-      proc->process();
+      if (preprocess)
+      {
+        if (!proc->preprocess())
+        {
+          return false;
+        }
+      }
+      return proc->process();
     }
   }
 

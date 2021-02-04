@@ -26,18 +26,41 @@ namespace uvw
     void* data_ptr_;
     void* data_src_;
 
+    public:
+
+    enum Dimension
+    {
+        DYN = -1,   // Dynamic size
+        NAA = 0,    // Not an array
+        SCALAR = 1, // 1-D vectors
+        VECTOR = 3, // 3-D vectors
+        MATRIX = 16 // Array of matrices
+    };
+
+    Dimension dimension;
+    bool parameter;
+
+    void init()
+    {
+      data_ptr_ = data_src_ = nullptr;
+      parameter = false;
+      dimension = NAA;
+    } 
+
+    protected:
+
     Variable(
       const Duo& key,
       size_t type_code = 0
     ): key_(key), type_(type_code)
     {
-      data_ptr_ = data_src_ = nullptr;
+      init();
     }
 
     public:
     Variable(): type_(0)
     {
-      data_ptr_ = data_src_ = nullptr;
+      init();
     }
 
     const Duo& key() {return key_;}

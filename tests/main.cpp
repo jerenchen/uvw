@@ -15,6 +15,7 @@ class MultProc: public Processor
 
   bool initialize() override
   {
+    x_.parameter = true;
     return (
       reg_var<double>("y", y_) &&
       reg_var<double>("x", x_) &&
@@ -22,23 +23,30 @@ class MultProc: public Processor
     );
   }
 
+  bool preprocess() override
+  {
+    std::cout << "No action in taken pre-processing ..." << std::endl;
+    return true;
+  }
+
   bool process() override
   {
     auto& x = x_();
     auto& y = y_();
-    std::cout << "Processing " << x << " '*' " << y << "..." << std::endl;
+    std::cout << "Processing x * y (" << x << " * " << y << ")..." << std::endl;
     z_() = x * y;
     return true;
   }
 };
 
-// Addition Proc
-class AddProc: public Processor
+// Precomputed Addition Proc
+class PreAddProc: public Processor
 {
+  double d_; // internal
   public:
   Var<double> a_, b_, c_;
 
-  AddProc(): Processor()
+  PreAddProc(): Processor()
   {
     initialize();
   }
@@ -52,13 +60,18 @@ class AddProc: public Processor
     );
   }
 
+  bool preprocess() override
+  {
+    std::cout << "Pre-processing d = a + b (" <<
+      a_() << " + " << b_() << ")..." << std::endl;
+    d_ = a_() + b_();
+    return true;
+  }
+
   bool process() override
   {
-    auto& c = c_();
-    auto& b = b_();
-    auto& a = a_();
-    std::cout << "Processing " << a << " '+' " << b << "..." << std::endl;
-    c = a + b;
+    std::cout << "Processing c = d (" << d_ << ")..." << std::endl;
+    c_() = d_;
     return true;
   }
 };
@@ -66,7 +79,7 @@ class AddProc: public Processor
 int main(int argc, char * argv[])
 {
   std::cout << "Adding 'add' proc with vars \'a\' \'b\' & \'c\'..." << std::endl;
-  AddProc add;
+  PreAddProc add;
 
   Duo add_a(&add,"a");
   Duo add_b(&add,"b");
@@ -92,11 +105,27 @@ int main(int argc, char * argv[])
   mult.y_.set(7);
   std::cout << "\'mult.y\' is set to " << mult.y_.get() << std::endl;
 
-  std::cout << "Processing \'z = (a + b) * y\'..." << std::endl;
+  // generate processing sequence
   auto seq = ws::schedule(mult_z);
+
+  ws::execute(seq, true);
+
+  std::cout << "\'z\' equals " << mult.z_() << " (expected 35)" << std::endl;
+
+  add.a_.set(6);
+  std::cout << "\'add.a\' is now set to " << ws::ref<double>(add_a) << 
+    ", but 'add' won't be pre-processed this time." << std::endl;
+  mult.y_.set(4);
+  std::cout << "\'mult.y\' is now set to " << mult.y_.get() << std::endl;
+
   ws::execute(seq);
 
-  std::cout << "\'z\' equals " << mult.z_() << std::endl;
+  std::cout << "\'z\' now equals " << mult.z_() << " (expected 20)" << std::endl;
+
+  std::cout << "Re-running with pre-processes..." << std::endl;
+  ws::execute(seq, true);
+
+  std::cout << "\'z\' now equals " << mult.z_() << " (expected 36)" << std::endl;
 
   return 1;
 }

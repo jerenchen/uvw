@@ -79,7 +79,7 @@ namespace uvw
     }
 
     static std::vector<Duo> schedule(const Duo& key);
-    static bool execute(const std::vector<Duo>& seq);
+    static bool execute(const std::vector<Duo>& seq, bool preprocess = false);
 
     protected:
 
