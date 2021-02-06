@@ -6,9 +6,6 @@
 
 namespace uvw
 {
-  class Variable;
-  class Workspace;
-  class Processor;
   struct Duo
   {
     void* raw_ptr;
@@ -28,10 +25,7 @@ namespace uvw
     const bool is_null() const {return raw_ptr == nullptr || var_str.empty();}
   };
 
-  bool operator==(const Duo& lhs, const Duo& rhs)
-  {
-      return lhs.raw_ptr == rhs.raw_ptr && lhs.var_str == rhs.var_str;
-  }
+  bool operator==(const Duo& lhs, const Duo& rhs);
 };
 
 namespace std

@@ -52,16 +52,10 @@ namespace uvw
     Variable(
       const Duo& key,
       size_t type_code = 0
-    ): key_(key), type_(type_code)
-    {
-      init();
-    }
+    ): key_(key), type_(type_code) {init();}
 
     public:
-    Variable(): type_(0)
-    {
-      init();
-    }
+    Variable(): type_(0) {init();}
 
     const Duo& key() {return key_;}
     const std::string label() {return key_.var_str;}
@@ -124,19 +118,6 @@ namespace uvw
   template<typename T> bool Variable::is_of_type()
   {
     return (var_type<T> == type_);
-  }
-
-  bool Variable::link(Variable* src)
-  {
-    if (type_ !=0 && type_ != src->type_)
-    {
-      unlink();
-      return false;
-    }
-    // hook up key & src data ptr
-    src_ = Duo(src->key());
-    data_src_ = src->data_ptr_;
-    return true;
   }
 
   using var = Variable;

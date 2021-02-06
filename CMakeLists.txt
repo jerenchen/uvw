@@ -8,4 +8,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include_directories(include)
 
+set(UVW_USE_STATIC_LIBRARY OFF)
+
 add_subdirectory(tests)
