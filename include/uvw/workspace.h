@@ -3,10 +3,12 @@
 
 #include <unordered_map>
 #include <set>
+#include <vector>
 #include <iostream>
 
 #include "duohash.h"
 #include "variable.h"
+
 
 namespace uvw
 {
@@ -69,14 +71,7 @@ namespace uvw
       return Variable::null_<T>;
     }
 
-    static bool link(const Duo& src, const Duo& dst)
-    {
-      if (!has(src) || !has(dst))
-      {
-        return false;
-      }
-      return vars_[dst]->link(vars_[src]);
-    }
+    static bool link(const Duo& src, const Duo& dst);
 
     static std::vector<Duo> schedule(const Duo& key);
     static bool execute(const std::vector<Duo>& seq, bool preprocess = false);
@@ -85,39 +80,16 @@ namespace uvw
 
     static std::set<Processor*> procs_;
 
-    static bool exists_(Processor* proc_ptr)
-    {
-      return (procs_.find(proc_ptr) != procs_.end());
-    }
-
-    static bool track_(Processor* proc_ptr)
-    {
-      if (!exists_(proc_ptr))
-      {
-        procs_.insert(proc_ptr);
-        return true;
-      }
-      return false;
-    }
-
-    static bool untrack_(Processor* proc_ptr)
-    {
-      if (exists_(proc_ptr))
-      {
-        return procs_.erase(proc_ptr);
-      }
-      return false;
-    }
+    static bool exists_(Processor* proc_ptr);
+    static bool track_(Processor* proc_ptr);
+    static bool untrack_(Processor* proc_ptr);
 
     public:
 
     static std::unordered_map<Duo, Variable*>& vars() {return vars_;}
     static std::set<Processor*>& procs() {return Workspace::procs_;}
-
   };
 
-  std::unordered_map<Duo, Variable*> Workspace::vars_;
-  std::set<Processor*> Workspace::procs_;
   using ws = Workspace;
 };
 

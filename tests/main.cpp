@@ -91,41 +91,41 @@ int main(int argc, char * argv[])
   std::cout << "\'add.b\' is set to " << add.b_() << std::endl;
 
   std::cout << "Adding 'mult' proc with vars \'x\' \'y\' & \'z\'..." << std::endl;
-  MultProc mult;
+  MultProc* mult = new MultProc();
 
-  Duo mult_x(&mult,"x");
-  Duo mult_y(&mult,"y");
-  Duo mult_z(&mult,"z");
+  Duo mult_x(mult,"x");
+  Duo mult_y(mult,"y");
+  Duo mult_z(mult,"z");
 
   if (ws::link(add_c, mult_x))
   {
-    std::cout << "Linked \'mult.x\' to \'add.c\'..." << std::endl;
+    std::cout << "Linked \'mult->x\' to \'add.c\'..." << std::endl;
   }
 
-  mult.y_.set(7);
-  std::cout << "\'mult.y\' is set to " << mult.y_.get() << std::endl;
+  mult->y_.set(7);
+  std::cout << "\'mult->y\' is set to " << mult->y_.get() << std::endl;
 
   // generate processing sequence
   auto seq = ws::schedule(mult_z);
 
   ws::execute(seq, true);
 
-  std::cout << "\'z\' equals " << mult.z_() << " (expected 35)" << std::endl;
+  std::cout << "\'z\' equals " << ws::ref<double>(mult_z) << " (expected 35)" << std::endl;
 
   add.a_.set(6);
   std::cout << "\'add.a\' is now set to " << ws::ref<double>(add_a) << 
     ", but 'add' won't be pre-processed this time." << std::endl;
-  mult.y_.set(4);
-  std::cout << "\'mult.y\' is now set to " << mult.y_.get() << std::endl;
+  mult->y_.set(4);
+  std::cout << "\'mult->y\' is now set to " << mult->y_.get() << std::endl;
 
   ws::execute(seq);
 
-  std::cout << "\'z\' now equals " << mult.z_() << " (expected 20)" << std::endl;
+  std::cout << "\'z\' now equals " << mult->z_() << " (expected 20)" << std::endl;
 
   std::cout << "Re-running with pre-processes..." << std::endl;
   ws::execute(seq, true);
 
-  std::cout << "\'z\' now equals " << mult.z_() << " (expected 36)" << std::endl;
-
+  std::cout << "\'z\' now equals " << mult->ref<double>("z") << " (expected 36)" << std::endl;
+delete mult;
   return 1;
 }

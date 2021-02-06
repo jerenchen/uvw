@@ -5,4 +5,8 @@
 #include "uvw/workspace.h"
 #include "uvw/processor.h"
 
+#ifndef UVW_BUILD_STATIC
+#include "uvw.cpp"
+#endif
+
 #endif
