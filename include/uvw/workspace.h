@@ -1,13 +1,13 @@
 #ifndef UVW_WORKSPACE_H
 #define UVW_WORKSPACE_H
 
+#include "duohash.h"
+#include "variable.h"
+
 #include <unordered_map>
 #include <set>
 #include <vector>
 #include <iostream>
-
-#include "duohash.h"
-#include "variable.h"
 
 
 namespace uvw
@@ -21,16 +21,16 @@ namespace uvw
 
     protected:
 
-    static std::unordered_map<Duo, Variable*> vars_;
+    static std::unordered_map<Duohash, Variable*> vars_;
 
     public:
 
-    static bool has(const Duo& key)
+    static bool has(const Duohash& key)
     {
       return (vars_.find(key) != vars_.end());
     }
 
-    static bool del(const Duo& key)
+    static bool del(const Duohash& key)
     {
       if (has(key))
       {
@@ -40,13 +40,13 @@ namespace uvw
       return false;
     }
 
-    static Variable* get(const Duo& key)
+    static Variable* get(const Duohash& key)
     {
       return has(key)? vars_[key]:nullptr;
     }
 
     template<typename T>
-    static bool add(const Duo& key, Var<T>& v)
+    static bool add(const Duohash& key, Var<T>& v)
     {
       if (has(key))
       {
@@ -58,7 +58,7 @@ namespace uvw
     }
 
     template<typename T>
-    static T& ref(const Duo& key)
+    static T& ref(const Duohash& key)
     {
       if (has(key) && key.raw_ptr)
       {
@@ -71,10 +71,10 @@ namespace uvw
       return Variable::null_<T>;
     }
 
-    static bool link(const Duo& src, const Duo& dst);
+    static bool link(const Duohash& src, const Duohash& dst);
 
-    static std::vector<Duo> schedule(const Duo& key);
-    static bool execute(const std::vector<Duo>& seq, bool preprocess = false);
+    static std::vector<Duohash> schedule(const Duohash& key);
+    static bool execute(const std::vector<Duohash>& seq, bool preprocess = false);
 
     protected:
 
@@ -86,7 +86,7 @@ namespace uvw
 
     public:
 
-    static std::unordered_map<Duo, Variable*>& vars() {return vars_;}
+    static std::unordered_map<Duohash, Variable*>& vars() {return vars_;}
     static std::set<Processor*>& procs() {return Workspace::procs_;}
   };
 

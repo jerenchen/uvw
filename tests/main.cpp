@@ -81,27 +81,31 @@ int main(int argc, char * argv[])
   std::cout << "Adding 'add' proc with vars \'a\' \'b\' & \'c\'..." << std::endl;
   PreAddProc add;
 
-  Duo add_a(&add,"a");
-  Duo add_b(&add,"b");
-  Duo add_c(&add,"c");
+  // create duo hash keys
+  uvw::duo add_a(&add,"a");
+  uvw::duo add_b(&add,"b");
+  uvw::duo add_c(&add,"c");
 
-  add.a_() = 2;
-  std::cout << "\'add.a\' is set to " << ws::ref<double>(add_a) << std::endl;
+  // access variable's reference through proc
+  add.ref<double>("a") = 2;
+  std::cout << "\'add.a\' is set to " << add.ref<double>("a") << std::endl;
+  // access through workspace via duo hash key
   ws::ref<double>(add_b) = 3;
-  std::cout << "\'add.b\' is set to " << add.b_() << std::endl;
+  std::cout << "\'add.b\' is set to " << ws::ref<double>(add_b) << std::endl;
 
   std::cout << "Adding 'mult' proc with vars \'x\' \'y\' & \'z\'..." << std::endl;
   MultProc* mult = new MultProc();
 
-  Duo mult_x(mult,"x");
-  Duo mult_y(mult,"y");
-  Duo mult_z(mult,"z");
+  uvw::duo mult_x(mult,"x");
+  uvw::duo mult_y(mult,"y");
+  uvw::duo mult_z(mult,"z");
 
   if (ws::link(add_c, mult_x))
   {
     std::cout << "Linked \'mult->x\' to \'add.c\'..." << std::endl;
   }
 
+  // access variable's reference directly (if accessiable i.e. public)
   mult->y_.set(7);
   std::cout << "\'mult->y\' is set to " << mult->y_.get() << std::endl;
 

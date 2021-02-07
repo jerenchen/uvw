@@ -2,7 +2,6 @@
 #define UVW_PROCESSOR_H
 
 #include <unordered_set>
-#include <iostream>
 
 
 namespace uvw
@@ -15,7 +14,7 @@ namespace uvw
 
     protected:
 
-    std::unordered_set<Duo> var_keys_;
+    std::unordered_set<Duohash> var_keys_;
 
     public:
     
@@ -36,11 +35,12 @@ namespace uvw
 };
 
 // implementation
+#include <iostream>
 
 template<typename T>
 bool uvw::Processor::reg_var(const std::string& label, Var<T>& v)
 {
-  Duo key(this, label);
+  Duohash key(this, label);
   v.key_ = key;
   v.data_ptr_ = &v.value_;
 
@@ -52,13 +52,13 @@ bool uvw::Processor::reg_var(const std::string& label, Var<T>& v)
 
   if (uvw::ws::has(key))
   {
-    std::cout << "Warning: var " << label << " exists." << std::endl;
+    std::cout << "Warning: var '" << label << "' exists." << std::endl;
     return false;
   }
 
   if (!uvw::ws::add<T>(key, v))
   {
-    std::cout << "Failure: Unable to add var " << label << std::endl;
+    std::cout << "Failure: Unable to add var '" << label << "'" << std::endl;
     return false;
   }
 
@@ -69,7 +69,7 @@ bool uvw::Processor::reg_var(const std::string& label, Var<T>& v)
 
 template<typename T> T& uvw::Processor::ref(const std::string& label)
 {
-  return uvw::ws::ref<T>(uvw::Duo(this, label));
+  return uvw::ws::ref<T>(uvw::Duohash(this, label));
 }
 
 #endif

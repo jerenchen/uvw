@@ -3,8 +3,6 @@
 
 #include "duohash.h"
 
-#include <unordered_map>
-#include <iostream>
 #include <typeinfo>
 
 
@@ -20,8 +18,8 @@ namespace uvw
 
     protected:
 
-    Duo key_;
-    Duo src_;
+    Duohash key_;
+    Duohash src_;
     size_t type_; // std::typeinfo::hash_code()
     void* data_ptr_;
     void* data_src_;
@@ -50,23 +48,23 @@ namespace uvw
     protected:
 
     Variable(
-      const Duo& key,
+      const Duohash& key,
       size_t type_code = 0
     ): key_(key), type_(type_code) {init();}
 
     public:
     Variable(): type_(0) {init();}
 
-    const Duo& key() {return key_;}
+    const Duohash& key() {return key_;}
     const std::string label() {return key_.var_str;}
     Processor* proc();
 
     template<typename T> bool is_of_type();
     template<typename T> static bool is_null(const T& obj);
 
-    void unlink() {src_ = Duo(nullptr,""); data_src_ = nullptr;}
+    void unlink() {src_ = Duohash(nullptr,""); data_src_ = nullptr;}
     bool link(Variable* src);
-    const Duo src() {return src_;}
+    const Duohash src() {return src_;}
 
     virtual void pull() {}
 
@@ -85,7 +83,7 @@ namespace uvw
 
     T value_;
 
-    Var(const Duo& key):
+    Var(const Duohash& key):
       Variable(key, typeid(T).hash_code()) {}
 
     public:

@@ -2,17 +2,17 @@
 #include "uvw.h"
 
 
+// static "global" containers
+
+std::unordered_map<uvw::Duohash, uvw::Variable*> uvw::Workspace::vars_;
+std::set<uvw::Processor*> uvw::Workspace::procs_;
+
 // operator overload
 
-bool uvw::operator==(const Duo& lhs, const Duo& rhs)
+bool uvw::operator==(const uvw::Duohash& lhs, const uvw::Duohash& rhs)
 {
     return lhs.raw_ptr == rhs.raw_ptr && lhs.var_str == rhs.var_str;
 }
-
-// static "global" containers
-
-std::unordered_map<uvw::Duo, uvw::Variable*> uvw::Workspace::vars_;
-std::set<uvw::Processor*> uvw::Workspace::procs_;
 
 // Variable impl.
 
@@ -24,7 +24,7 @@ bool uvw::Variable::link(uvw::Variable* src)
     return false;
   }
   // hook up key & src data ptr
-  src_ = uvw::Duo(src->key());
+  src_ = uvw::Duohash(src->key());
   data_src_ = src->data_ptr_;
   return true;
 }
@@ -57,7 +57,7 @@ uvw::Processor::~Processor()
 
 uvw::Variable* uvw::Processor::get(const std::string& label)
 {
-  return uvw::ws::get(uvw::Duo(this, label));
+  return uvw::ws::get(uvw::Duohash(this, label));
 }
 
 // Workspace impl.
@@ -66,7 +66,7 @@ uvw::Variable* uvw::Processor::get(const std::string& label)
 #include <stack>
 #include <vector>
 
-bool uvw::Workspace::link(const uvw::Duo& src, const uvw::Duo& dst)
+bool uvw::Workspace::link(const uvw::Duohash& src, const uvw::Duohash& dst)
 {
   if (!uvw::Workspace::has(src) || !uvw::Workspace::has(dst))
   {
@@ -102,9 +102,10 @@ bool uvw::Workspace::untrack_(uvw::Processor* proc_ptr)
   return false;
 }
 
-std::vector<uvw::Duo> uvw::Workspace::schedule(const uvw::Duo& key)
+std::vector<uvw::Duohash>
+  uvw::Workspace::schedule(const uvw::Duohash& key)
 {
-  std::vector<uvw::Duo> res;
+  std::vector<uvw::Duohash> res;
   if (!uvw::Workspace::has(key))
   {
     return res;
@@ -119,7 +120,7 @@ std::vector<uvw::Duo> uvw::Workspace::schedule(const uvw::Duo& key)
   }
   queue_proc.push(proc);
 
-  std::stack<uvw::Duo> stack_vkey;
+  std::stack<uvw::Duohash> stack_vkey;
   while (queue_proc.size())
   {
     proc = queue_proc.front();
@@ -154,14 +155,20 @@ std::vector<uvw::Duo> uvw::Workspace::schedule(const uvw::Duo& key)
   return res;
 }
 
-bool uvw::Workspace::execute(const std::vector<uvw::Duo>& seq, bool preprocess)
+bool uvw::Workspace::execute(
+  const std::vector<uvw::Duohash>& seq,
+  bool preprocess
+)
 {
   std::unordered_set<void*> visited;
 
   uvw::Variable* var = nullptr;
   for (const auto& key : seq)
   {
-    // Assuming var & its src are validated by schedule...
+    /* NOTE: a seq can only be considered valid if proc linkage 
+      remains unchanged; some form of revoke mechanism is needed
+      if we want to guarantee the validity of a seq */
+
     var = uvw::Workspace::vars_[key];
     auto* proc = uvw::Workspace::vars_[var->src()]->proc();
     if (visited.find(proc) == visited.end())
