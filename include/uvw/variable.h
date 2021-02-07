@@ -38,14 +38,24 @@ namespace uvw
     Dimension dimension;
     bool parameter;
 
+    protected:
+
     void init()
     {
       data_ptr_ = data_src_ = nullptr;
       parameter = false;
       dimension = NAA;
-    } 
+    }
 
-    protected:
+    void copy(const Variable& v)
+    {
+      data_ptr_ = v.data_ptr_;
+      data_src_ = v.data_src_;
+      parameter = v.parameter;
+      dimension = v.dimension;
+      key_ = v.key_;
+      src_ = v.src_;
+    }
 
     Variable(
       const Duohash& key,
@@ -54,6 +64,9 @@ namespace uvw
 
     public:
     Variable(): type_(0) {init();}
+    ~Variable() {init();}
+    Variable(const Variable& v) {*this = v;}
+    Variable& operator=(const Variable& v) {copy(v); return *this;}
 
     const Duohash& key() {return key_;}
     const std::string label() {return key_.var_str;}
