@@ -130,6 +130,6 @@ int main(int argc, char * argv[])
   ws::execute(seq, true);
 
   std::cout << "\'z\' now equals " << mult->ref<double>("z") << " (expected 36)" << std::endl;
-delete mult;
+
   return 1;
 }
