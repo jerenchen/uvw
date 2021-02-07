@@ -64,7 +64,7 @@ namespace uvw
 
     public:
     Variable(): type_(0) {init();}
-    ~Variable() {init();}
+    virtual ~Variable() {init();}
     Variable(const Variable& v) {*this = v;}
     Variable& operator=(const Variable& v) {copy(v); return *this;}
 
