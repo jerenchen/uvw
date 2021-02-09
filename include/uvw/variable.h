@@ -37,7 +37,7 @@ namespace uvw
 
     enum Parameter
     {
-      NONEPARAM = 0,
+      NONPARAM = 0,
       OUTPUT,
       INPUT
     };
@@ -50,7 +50,7 @@ namespace uvw
     void init()
     {
       data_ptr_ = data_src_ = nullptr;
-      parameter = FALSE;
+      parameter = NONPARAM;
       dimension = NAA;
     }
 
