@@ -37,7 +37,7 @@ namespace uvw
 
     enum Parameter
     {
-      FALSE = 0,
+      NONEPARAM = 0,
       OUTPUT,
       INPUT
     };
