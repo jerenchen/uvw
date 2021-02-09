@@ -35,15 +35,22 @@ namespace uvw
         MATRIX = 16 // Array of matrices
     };
 
+    enum Parameter
+    {
+      FALSE = 0,
+      OUTPUT,
+      INPUT
+    };
+
     Dimension dimension;
-    bool parameter;
+    Parameter parameter;
 
     protected:
 
     void init()
     {
       data_ptr_ = data_src_ = nullptr;
-      parameter = false;
+      parameter = FALSE;
       dimension = NAA;
     }
 

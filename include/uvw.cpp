@@ -55,6 +55,17 @@ uvw::Processor::~Processor()
   };
 }
 
+uvw::Processor::Processor(const uvw::Processor& p)
+{
+  *this = p;
+}
+
+uvw::Processor& uvw::Processor::operator=(const uvw::Processor& p)
+{
+  var_keys_ = std::unordered_set<uvw::Duohash>(p.var_keys_);
+  return *this;
+}
+
 uvw::Variable* uvw::Processor::get(const std::string& label)
 {
   return uvw::ws::get(uvw::Duohash(this, label));

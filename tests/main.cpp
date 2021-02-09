@@ -15,7 +15,7 @@ class MultProc: public Processor
 
   bool initialize() override
   {
-    x_.parameter = true;
+    x_.parameter = Variable::INPUT;
     return (
       reg_var<double>("y", y_) &&
       reg_var<double>("x", x_) &&
