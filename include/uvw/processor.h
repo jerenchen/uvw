@@ -19,7 +19,10 @@ namespace uvw
     public:
     
     Processor();
+    Processor(const Processor& p);
     virtual ~Processor();
+
+    Processor& operator=(const Processor& p);
 
     virtual bool initialize() {return true;}
     virtual bool preprocess() {return true;}
