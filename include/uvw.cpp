@@ -6,6 +6,7 @@
 
 std::unordered_map<uvw::Duohash, uvw::Variable*> uvw::Workspace::vars_;
 std::set<uvw::Processor*> uvw::Workspace::procs_;
+std::map<std::string, std::function<uvw::Processor*()> > uvw::Workspace::lib_;
 
 // operator overload
 
@@ -111,6 +112,33 @@ bool uvw::Workspace::untrack_(uvw::Processor* proc_ptr)
     return uvw::Workspace::procs_.erase(proc_ptr);
   }
   return false;
+}
+
+bool uvw::Workspace::reg_proc(
+  const std::string& proc_type,
+  std::function<Processor*()> proc_func
+)
+{
+  if (uvw::Workspace::lib_.find(proc_type) != uvw::Workspace::lib_.end())
+  {
+    return false;
+  }
+  uvw::Workspace::lib_[proc_type] = proc_func;
+  return true;
+}
+
+uvw::Processor* uvw::Workspace::create(const std::string& proc_type)
+{
+  if (uvw::Workspace::lib_.find(proc_type) != uvw::Workspace::lib_.end())
+  {
+    uvw::Processor* proc = uvw::Workspace::lib_[proc_type]();
+    if (proc->initialize())
+    {
+      return proc;
+    }
+    delete proc;
+  }
+  return nullptr;
 }
 
 std::vector<uvw::Duohash>
