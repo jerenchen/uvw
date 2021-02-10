@@ -6,7 +6,9 @@
 
 #include <unordered_map>
 #include <set>
+#include <map>
 #include <vector>
+#include <functional>
 #include <iostream>
 
 
@@ -83,6 +85,16 @@ namespace uvw
     static bool exists_(Processor* proc_ptr);
     static bool track_(Processor* proc_ptr);
     static bool untrack_(Processor* proc_ptr);
+
+    static std::map<std::string, std::function<Processor*()> > lib_;
+
+    public:
+
+    static bool reg_proc(
+      const std::string& proc_type,
+      std::function<Processor*()> proc_func
+    );
+    static Processor* create(const std::string& proc_type);
 
     public:
 

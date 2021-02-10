@@ -9,10 +9,7 @@ class MultProc: public Processor
   public:
   Var<double> x_, y_, z_;
 
-  MultProc(): Processor()
-  {
-    initialize();
-  }
+  MultProc(): Processor() {}
 
   bool initialize() override
   {
@@ -47,10 +44,7 @@ class PreAddProc: public Processor
   public:
   Var<double> a_, b_, c_;
 
-  PreAddProc(): Processor()
-  {
-    initialize();
-  }
+  PreAddProc(): Processor() {}
 
   bool initialize() override
   {
@@ -77,28 +71,36 @@ class PreAddProc: public Processor
   }
 };
 
+std::function<Processor*()> create_preadd = [](){return new PreAddProc();};
+
 int main(int argc, char * argv[])
 {
+  uvw::ws::reg_proc("PreAdd", create_preadd);
+  uvw::ws::reg_proc("Mult", ([](){return new MultProc();})); // inplace func
+
   std::cout << "Adding 'add' proc with vars \'a\' \'b\' & \'c\'..." << std::endl;
-  PreAddProc add;
-
-  std::cout << "'add.c' is a double? " << add.c_.is_of_type<double>() << std::endl;
-  std::cout << "'add.c' is an int? " << add.c_.is_of_type<int>() << std::endl;
-
+  auto* p = uvw::ws::create("PreAdd");
+  
   // create duo hash keys
-  uvw::duo add_a(&add,"a");
-  uvw::duo add_b(&add,"b");
-  uvw::duo add_c(&add,"c");
+  uvw::duo add_a(p,"a");
+  uvw::duo add_b(p,"b");
+  uvw::duo add_c(p,"c");
+
+  // upcast to access members
+  auto* add = static_cast<PreAddProc*>(p);
+  std::cout << "'add->c' is a double? " << add->c_.is_of_type<double>() << std::endl;
+  std::cout << "'add->c' is an int? " << add->c_.is_of_type<int>() << std::endl;
 
   // access variable's reference through proc
-  add.ref<double>("a") = 2;
-  std::cout << "\'add.a\' is set to " << add.ref<double>("a") << std::endl;
+  add->ref<double>("a") = 2;
+  std::cout << "\'add->a\' is set to " << add->ref<double>("a") << std::endl;
   // access through workspace via duo hash key
   ws::ref<double>(add_b) = 3;
-  std::cout << "\'add.b\' is set to " << ws::ref<double>(add_b) << std::endl;
+  std::cout << "\'add->b\' is set to " << ws::ref<double>(add_b) << std::endl;
 
   std::cout << "Adding 'mult' proc with vars \'x\' \'y\' & \'z\'..." << std::endl;
-  MultProc* mult = new MultProc();
+  auto* q = uvw::ws::create("Mult");
+  auto* mult = static_cast<MultProc*>(q);
 
   uvw::duo mult_x(mult,"x");
   uvw::duo mult_y(mult,"y");
@@ -106,7 +108,7 @@ int main(int argc, char * argv[])
 
   if (ws::link(add_c, mult_x))
   {
-    std::cout << "Linked \'mult->x\' to \'add.c\'..." << std::endl;
+    std::cout << "Linked \'mult->x\' to \'add->c\'..." << std::endl;
   }
 
   // access variable's reference directly (if accessiable i.e. public)
@@ -120,8 +122,8 @@ int main(int argc, char * argv[])
 
   std::cout << "\'z\' equals " << ws::ref<double>(mult_z) << " (expected 35)" << std::endl;
 
-  add.a_.set(6);
-  std::cout << "\'add.a\' is now set to " << ws::ref<double>(add_a) << 
+  add->a_.set(6);
+  std::cout << "\'add->a\' is now set to " << ws::ref<double>(add_a) << 
     ", but 'add' won't be pre-processed this time." << std::endl;
   mult->y_.set(4);
   std::cout << "\'mult->y\' is now set to " << mult->y_.get() << std::endl;
