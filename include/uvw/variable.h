@@ -3,7 +3,7 @@
 
 #include "duohash.h"
 
-#include <typeinfo>
+#include <typeindex>
 
 
 namespace uvw
@@ -20,7 +20,6 @@ namespace uvw
 
     Duohash key_;
     Duohash src_;
-    size_t type_; // std::typeinfo::hash_code()
     void* data_ptr_;
     void* data_src_;
 
@@ -64,13 +63,10 @@ namespace uvw
       src_ = v.src_;
     }
 
-    Variable(
-      const Duohash& key,
-      size_t type_code = 0
-    ): key_(key), type_(type_code) {init();}
+    Variable(const Duohash& key): key_(key) {init();}
 
     public:
-    Variable(): type_(0) {init();}
+    Variable() {init();}
     virtual ~Variable() {init();}
     Variable(const Variable& v) {*this = v;}
     Variable& operator=(const Variable& v) {copy(v); return *this;}
@@ -86,7 +82,8 @@ namespace uvw
     bool link(Variable* src);
     const Duohash src() {return src_;}
 
-    virtual void pull() {}
+    virtual void pull() = 0;
+    virtual const std::type_index type_index() = 0;
 
     protected:
     template<class T> static T null_;
@@ -104,11 +101,16 @@ namespace uvw
     T value_;
 
     Var(const Duohash& key):
-      Variable(key, typeid(T).hash_code()) {}
+      Variable(key) {}
 
     public:
 
     Var(): Variable() {}
+
+    const std::type_index type_index() override
+    {
+      return std::type_index(typeid(T));
+    }
 
     void pull() override
     {
@@ -128,14 +130,13 @@ namespace uvw
   // impl.
 
   template<class T> T Variable::null_;
-  template<class T> size_t Variable::var_type = typeid(T).hash_code();
   template<typename T> bool Variable::is_null(const T& obj)
   {
     return &obj == &Variable::null_<T>;
   }
   template<typename T> bool Variable::is_of_type()
   {
-    return (var_type<T> == type_);
+    return (std::type_index(typeid(T)) == type_index());
   }
 
   using var = Variable;

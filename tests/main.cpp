@@ -2,6 +2,7 @@
 #include <uvw.h>
 using namespace uvw;
 
+
 // Multply proc
 class MultProc: public Processor
 {
@@ -80,6 +81,9 @@ int main(int argc, char * argv[])
 {
   std::cout << "Adding 'add' proc with vars \'a\' \'b\' & \'c\'..." << std::endl;
   PreAddProc add;
+
+  std::cout << "'add.c' is a double? " << add.c_.is_of_type<double>() << std::endl;
+  std::cout << "'add.c' is an int? " << add.c_.is_of_type<int>() << std::endl;
 
   // create duo hash keys
   uvw::duo add_a(&add,"a");

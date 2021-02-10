@@ -18,7 +18,7 @@ bool uvw::operator==(const uvw::Duohash& lhs, const uvw::Duohash& rhs)
 
 bool uvw::Variable::link(uvw::Variable* src)
 {
-  if ((type_ != 0) && (type_ != src->type_))
+  if (type_index() != src->type_index())
   {
     unlink();
     return false;
