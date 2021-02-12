@@ -5,6 +5,9 @@
 
 #include <typeindex>
 
+#include <json.hpp>
+using json = nlohmann::json;
+
 
 namespace uvw
 {
@@ -41,26 +44,27 @@ namespace uvw
       INPUT
     };
 
-    Dimension dimension;
-    Parameter parameter;
+    std::unordered_map<std::string, int> properties;
 
     protected:
 
     void init()
     {
       data_ptr_ = data_src_ = nullptr;
-      parameter = NONPARAM;
-      dimension = NAA;
+      properties = {
+        {"parameter", NONPARAM},
+        {"dimension", NAA},
+        {"exposure", 1}
+      };
     }
 
     void copy(const Variable& v)
     {
       data_ptr_ = v.data_ptr_;
       data_src_ = v.data_src_;
-      parameter = v.parameter;
-      dimension = v.dimension;
       key_ = v.key_;
       src_ = v.src_;
+      properties = v.properties;
     }
 
     Variable(const Duohash& key): key_(key) {init();}
@@ -74,20 +78,26 @@ namespace uvw
     const Duohash& key() {return key_;}
     const std::string label() {return key_.var_str;}
     Processor* proc();
+    void* raw_data() {return data_ptr_;}
 
     template<typename T> bool is_of_type();
     template<typename T> static bool is_null(const T& obj);
 
-    void unlink() {src_ = Duohash(nullptr,""); data_src_ = nullptr;}
+    void unlink();
     bool link(Variable* src);
     const Duohash src() {return src_;}
 
     virtual void pull() = 0;
     virtual const std::type_index type_index() = 0;
 
+    virtual json to_json();
+    virtual bool from_json(json& data);
+
+    const std::string type_str();
+    static std::map<std::type_index, std::string> type_strs;
+
     protected:
     template<class T> static T null_;
-    template<class T> static size_t var_type;
   };
 
   template<class T>
@@ -118,6 +128,32 @@ namespace uvw
       {
         value_ = *((T*)data_src_);
       }
+    }
+
+    // json values
+    std::unordered_map<std::string, T> values;
+
+    json to_json() override
+    {
+      json data = Variable::to_json();
+      for (auto& itr : values)
+      {
+        data["values"][itr.first] = itr.second;
+      }
+      return data;
+    }
+
+    bool from_json(json& data) override
+    {
+      if (std::is_fundamental<T>() &&
+        data.find("values") != data.end())
+      {
+        for (auto& itr : data["values"].items())
+        {
+          values[itr.key()] = itr.value().get<T>();
+        }
+      }
+      return Variable::from_json(data);;
     }
 
     // type-specific members

@@ -4,6 +4,7 @@
 #include "duohash.h"
 #include "variable.h"
 
+#include <unordered_set>
 #include <unordered_map>
 #include <set>
 #include <map>
@@ -24,6 +25,7 @@ namespace uvw
     protected:
 
     static std::unordered_map<Duohash, Variable*> vars_;
+    static std::unordered_map<Duohash, Duohash> links_;
 
     public:
 
@@ -36,8 +38,8 @@ namespace uvw
     {
       if (has(key))
       {
-        vars_.erase(key);
-        return true;
+        vars_[key]->unlink();
+        return (vars_.erase(key) > 0);
       }
       return false;
     }
@@ -78,13 +80,68 @@ namespace uvw
     static std::vector<Duohash> schedule(const Duohash& key);
     static bool execute(const std::vector<Duohash>& seq, bool preprocess = false);
 
+    static std::string stats();
+
     protected:
 
-    static std::set<Processor*> procs_;
+    static std::unordered_set<Workspace*> ws_;
+    static bool exists_(Workspace* ws_ptr);
+    static bool track_(Workspace* ws_ptr);
+    static bool untrack_(Workspace* ws_ptr);
 
+    static std::unordered_set<Processor*> procs_;
     static bool exists_(Processor* proc_ptr);
     static bool track_(Processor* proc_ptr);
     static bool untrack_(Processor* proc_ptr);
+
+    // workspace instance vars/funcs
+    public:
+
+    void clear();
+    Processor* new_proc(const std::string& proc_type);
+
+    bool has_var(const Duohash& key);
+    const std::vector<Processor*>& proc_ptrs() const {return proc_ptrs_;}
+
+    // proc json serialization
+    json to_json();
+    bool from_json(json& data);
+
+    // workspace processing
+    bool set_input(const Duohash& key);
+    bool set_output(const Duohash& key);
+    bool process(bool preprocess = false);
+
+    protected:
+
+    // per-workspace proc container
+    std::vector<Processor*> proc_ptrs_;
+    std::unordered_map<Duohash, Processor*> procs_by_keys_;
+
+    Duohash in_, out_;
+    std::vector<Duohash> seq_;
+
+    public:
+
+    Workspace();
+    ~Workspace();
+    Workspace(const Workspace& w);
+    Workspace& operator=(const Workspace& w);
+
+    // vars/links/procs range-based
+
+    static std::unordered_set<Processor*> procs(
+      const std::string& proc_type = std::string()
+    );
+    static std::unordered_map<Duohash, Variable*> vars(
+      Processor* proc = nullptr
+    );
+    static std::unordered_map<Duohash, Duohash>& links() {return links_;}
+    static std::unordered_set<Workspace*>& workspaces() {return ws_;}
+
+    // proc library registeration
+
+    protected:
 
     static std::map<std::string, std::function<Processor*()> > lib_;
 
@@ -95,11 +152,6 @@ namespace uvw
       std::function<Processor*()> proc_func
     );
     static Processor* create(const std::string& proc_type);
-
-    public:
-
-    static std::unordered_map<Duohash, Variable*>& vars() {return vars_;}
-    static std::set<Processor*>& procs() {return Workspace::procs_;}
   };
 
   using ws = Workspace;

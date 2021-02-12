@@ -1,6 +1,9 @@
 #ifndef UVW_PROCESSOR_H
 #define UVW_PROCESSOR_H
 
+#include "duohash.h"
+#include "variable.h"
+
 #include <unordered_set>
 
 
@@ -14,7 +17,8 @@ namespace uvw
 
     protected:
 
-    std::unordered_set<Duohash> var_keys_;
+    std::vector<Duohash> var_keys_;
+    std::string type_;
 
     public:
     
@@ -33,6 +37,12 @@ namespace uvw
     template<typename T>
     T& ref(const std::string& label);
     Variable* get(const std::string& label);
+
+    json to_json();
+    bool from_json(json& data);
+
+    const std::string& type_str() const {return type_;}
+    const std::vector<Duohash>& var_keys() const {return var_keys_;}
   };
 
 };
@@ -65,7 +75,7 @@ bool uvw::Processor::reg_var(const std::string& label, Var<T>& v)
     return false;
   }
 
-  var_keys_.insert(key);
+  var_keys_.push_back(key);
 
   return true;
 }
