@@ -4,8 +4,9 @@
 
 // static "global" containers
 
-std::unordered_map<uvw::Duohash, uvw::Variable*> uvw::Workspace::vars_;
 std::set<uvw::Processor*> uvw::Workspace::procs_;
+std::unordered_map<uvw::Duohash, uvw::Duohash> uvw::Workspace::links_;
+std::unordered_map<uvw::Duohash, uvw::Variable*> uvw::Workspace::vars_;
 std::map<std::string, std::function<uvw::Processor*()> > uvw::Workspace::lib_;
 
 // operator overload
@@ -21,12 +22,17 @@ bool uvw::Variable::link(uvw::Variable* src)
 {
   if (type_index() != src->type_index())
   {
+    if (uvw::Workspace::links_.find(key_) != uvw::Workspace::links_.end())
+    {
+      uvw::Workspace::links_.erase(key_);
+    }
     unlink();
     return false;
   }
   // hook up key & src data ptr
   src_ = uvw::Duohash(src->key());
   data_src_ = src->data_ptr_;
+  uvw::Workspace::links_[key_] = src_;
   return true;
 }
 
@@ -77,6 +83,24 @@ uvw::Variable* uvw::Processor::get(const std::string& label)
 #include <queue>
 #include <stack>
 #include <vector>
+
+std::string uvw::Workspace::stats()
+{
+  std::string res("Stats - procs: ");
+  res += std::to_string(procs_.size());
+  res += " vars: ";
+  res += std::to_string(vars_.size());
+  res += " links: ";
+  res += std::to_string(links_.size());
+  return res;
+}
+
+void uvw::Workspace::clear()
+{
+  links_.clear();
+  vars_.clear(); // deregister all vars
+  procs_.clear(); // untrack all procs
+}
 
 bool uvw::Workspace::link(const uvw::Duohash& src, const uvw::Duohash& dst)
 {
@@ -132,6 +156,7 @@ uvw::Processor* uvw::Workspace::create(const std::string& proc_type)
   if (uvw::Workspace::lib_.find(proc_type) != uvw::Workspace::lib_.end())
   {
     uvw::Processor* proc = uvw::Workspace::lib_[proc_type]();
+    proc->type_ = proc_type;
     if (proc->initialize())
     {
       return proc;
@@ -141,17 +166,56 @@ uvw::Processor* uvw::Workspace::create(const std::string& proc_type)
   return nullptr;
 }
 
+std::unordered_map<uvw::Duohash, uvw::Variable*>
+  uvw::Workspace::vars(uvw::Processor* proc_ptr)
+{
+  if (proc_ptr == nullptr)
+  {
+    return Workspace::vars_;
+  }
+
+  std::unordered_map<uvw::Duohash, uvw::Variable*> res;
+  for (auto itr : Workspace::vars_)
+  {
+    if (itr.second->proc() == proc_ptr)
+    {
+      res[itr.first] = itr.second;
+    }
+  }
+  return res;
+}
+
+std::set<uvw::Processor*> uvw::Workspace::procs(
+  const std::string& proc_type
+)
+{
+  if (proc_type.empty())
+  {
+    return Workspace::procs_;
+  }
+
+  std::set<uvw::Processor*> res;
+  for (auto* ptr : Workspace::procs_)
+  {
+    if (ptr->type_ == proc_type)
+    {
+      res.insert(ptr);
+    }
+  }
+  return res;
+}
+
 std::vector<uvw::Duohash>
   uvw::Workspace::schedule(const uvw::Duohash& key)
 {
   std::vector<uvw::Duohash> res;
-  if (!uvw::Workspace::has(key))
+  if (!has(key))
   {
     return res;
   }
 
   std::queue<uvw::Processor*> queue_proc;
-  uvw::Processor* proc = uvw::Workspace::vars_[key]->proc();
+  uvw::Processor* proc = vars_[key]->proc();
   if (!proc)
   {
     std::cout << "Warning: null proc found for " << key << std::endl;
@@ -167,15 +231,15 @@ std::vector<uvw::Duohash>
 
     for (auto& vk : proc->var_keys_)
     {
-      if (!uvw::Workspace::has(vk))
+      if (!has(vk))
       {
         continue;
       }
-      Variable* var = uvw::Workspace::vars_[vk];
+      Variable* var = vars_[vk];
 
-      if (uvw::Workspace::has(var->src()))
+      if (has(var->src()))
       {
-        Variable* src = uvw::Workspace::vars_[var->src()];
+        Variable* src = vars_[var->src()];
         uvw::Processor* src_proc = src->proc();
         if (src_proc)
         {
@@ -208,8 +272,8 @@ bool uvw::Workspace::execute(
       remains unchanged; some form of revoke mechanism is needed
       if we want to guarantee the validity of a seq */
 
-    var = uvw::Workspace::vars_[key];
-    auto* proc = uvw::Workspace::vars_[var->src()]->proc();
+    var = vars_[key];
+    auto* proc = vars_[var->src()]->proc();
     if (visited.find(proc) == visited.end())
     {
       if (preprocess)
@@ -231,7 +295,7 @@ bool uvw::Workspace::execute(
     var->pull();
   }
 
-  if (var && uvw::Workspace::exists_(var->proc()))
+  if (var && exists_(var->proc()))
   {
     auto* proc = var->proc();
     if (visited.find(proc) == visited.end())
@@ -247,5 +311,129 @@ bool uvw::Workspace::execute(
     }
   }
 
+  return true;
+}
+
+// json
+
+json uvw::Variable::to_json()
+{
+  json data;
+  data["label"] = label();
+  data["type"]["name"] = type_index().name();
+  data["type"]["code"] = type_index().hash_code();
+  for (auto& itr : properties)
+  {
+    data["properties"][itr.first] = itr.second;
+  }
+  return data;
+}
+
+bool uvw::Variable::from_json(json& data)
+{
+  for (auto& itr : data["properties"].items())
+  {
+    properties[itr.key()] = itr.value().get<int>();
+  }
+  return true;
+}
+
+json uvw::Processor::to_json()
+{
+  json data;
+
+  data["type"] = type_;
+
+  data["vars"] = json::array();
+  for (auto& key : keys_by_creation_)
+  {
+    if (get(key.var_str))
+    {
+      data["vars"].push_back(get(key.var_str)->to_json());
+    }
+  }
+  return data;
+}
+
+bool uvw::Processor::from_json(json& data)
+{
+  for (auto& data_itr : data["vars"])
+  {
+    uvw::Variable* v = get(data_itr["label"]);
+    if (!v)
+    {
+      std::cerr << "Cannot find var '" <<
+        data_itr["label"] << "'!" << std::endl;
+      return false;
+    }
+
+    v->from_json(data_itr);
+  }
+  return true;
+}
+
+json uvw::Workspace::to_json()
+{
+  json data;
+
+  std::map<void*, unsigned int> indices_by_procs;
+  data["procs"] = json::array();
+  for (const auto& proc : procs_)
+  {
+    unsigned int index = indices_by_procs.size();
+    indices_by_procs[proc] = index;
+
+    data["procs"].push_back(proc->to_json());
+    data["procs"].back()["index"] = index;
+  }
+
+  data["links"] = json::array();
+  for (const auto& itr : links_)
+  {
+    json link;
+    link["var"]["index"] = indices_by_procs[itr.first.raw_ptr];
+    link["var"]["label"] = itr.first.var_str;
+    link["src"]["index"] = indices_by_procs[itr.second.raw_ptr];
+    link["src"]["label"] = itr.second.var_str;
+    data["links"].push_back(link);
+  }
+
+  return data;
+}
+
+bool uvw::Workspace::from_json(json& data)
+{
+  std::unordered_map<unsigned int, void*> procs_by_indices;
+
+  for (auto& data_itr : data["procs"])
+  {
+    auto proc_type = data_itr["type"].get<std::string>();
+    auto* p = create(proc_type);
+    if (!p)
+    {
+      std::cerr << "Cannot create proc type '" <<
+        proc_type << "'!" << std::endl;
+      return false;
+    }
+
+    procs_by_indices[procs_by_indices.size()] = p;
+    if (!p->from_json(data_itr))
+    {
+      return false;
+    }
+  }
+
+  for (auto& data_itr : data["links"])
+  {
+    auto* p = procs_by_indices[data_itr["var"]["index"].get<int>()];
+    auto* q = procs_by_indices[data_itr["src"]["index"].get<int>()];
+    uvw::Duohash dst(p, data_itr["var"]["label"].get<std::string>());
+    uvw::Duohash src(q, data_itr["src"]["label"].get<std::string>());
+    if (!link(src, dst))
+    {
+      std::cerr << "Cannot link between " << src << " & " << dst << std::endl;
+      return false;
+    }
+  }
   return true;
 }

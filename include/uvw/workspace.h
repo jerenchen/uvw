@@ -24,6 +24,7 @@ namespace uvw
     protected:
 
     static std::unordered_map<Duohash, Variable*> vars_;
+    static std::unordered_map<Duohash, Duohash> links_;
 
     public:
 
@@ -96,10 +97,19 @@ namespace uvw
     );
     static Processor* create(const std::string& proc_type);
 
-    public:
+    static json to_json();
+    static bool from_json(json& data);
 
-    static std::unordered_map<Duohash, Variable*>& vars() {return vars_;}
-    static std::set<Processor*>& procs() {return Workspace::procs_;}
+    static std::unordered_map<Duohash, Variable*> vars(
+      Processor* proc = nullptr
+    );
+    static std::set<Processor*> procs(
+      const std::string& proc_type = std::string()
+    );
+    static std::unordered_map<Duohash, Duohash>& links() {return links_;}
+
+    static void clear();
+    static std::string stats();
   };
 
   using ws = Workspace;
