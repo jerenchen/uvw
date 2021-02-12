@@ -13,7 +13,7 @@ class MultProc: public Processor
 
   bool initialize() override
   {
-    x_.parameter = Variable::INPUT;
+    x_.properties["parameter"] = Variable::INPUT;
     return (
       reg_var<double>("y", y_) &&
       reg_var<double>("x", x_) &&
@@ -136,6 +136,50 @@ int main(int argc, char * argv[])
   ws::execute(seq, true);
 
   std::cout << "\'z\' now equals " << mult->ref<double>("z") << " (expected 36)" << std::endl;
+
+  std::cout << ws::stats() << std::endl;
+
+  // serialize
+  auto json_stream = ws::to_json();
+  std::cout << json_stream.dump(2) << std::endl;
+
+  // clear workspace
+  std::cout << "Clean up workspace before deserializing..." << std::endl;
+  ws::clear();
+  seq.clear();
+  p = q = nullptr;
+  add = nullptr; mult = nullptr;
+
+  std::cout << ws::stats() << std::endl;
+
+  // deserialize
+  ws::from_json(json_stream);
+
+  std::cout << "json identical? " << (json_stream == ws::to_json()) << std::endl;
+
+  for (auto* ptr : ws::procs("PreAdd"))
+  {
+    p = ptr;
+    add = static_cast<PreAddProc*>(ptr);
+    break;
+  }
+  for (auto* ptr : ws::procs("Mult"))
+  {
+    q = ptr;
+    mult = static_cast<MultProc*>(ptr);
+    break;
+  }
+
+  add->a_.set(8);
+  add->b_.set(3);
+  mult->y_.set(2);
+
+  seq = ws::schedule(uvw::duo(mult,"z"));
+  ws::execute(seq, true);
+
+  std::cout << "\'z\' now equals " << mult->ref<double>("z") << " (expected 22)" << std::endl;
+
+  std::cout << ws::stats() << std::endl;
 
   return 1;
 }

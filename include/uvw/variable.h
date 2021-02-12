@@ -5,6 +5,9 @@
 
 #include <typeindex>
 
+#include <json.hpp>
+using json = nlohmann::json;
+
 
 namespace uvw
 {
@@ -41,26 +44,27 @@ namespace uvw
       INPUT
     };
 
-    Dimension dimension;
-    Parameter parameter;
+    std::map<std::string, int> properties;
 
     protected:
 
     void init()
     {
       data_ptr_ = data_src_ = nullptr;
-      parameter = NONPARAM;
-      dimension = NAA;
+      properties = {
+        {"parameter", NONPARAM},
+        {"dimension", NAA},
+        {"exposure", 1}
+      };
     }
 
     void copy(const Variable& v)
     {
       data_ptr_ = v.data_ptr_;
       data_src_ = v.data_src_;
-      parameter = v.parameter;
-      dimension = v.dimension;
       key_ = v.key_;
       src_ = v.src_;
+      properties = v.properties;
     }
 
     Variable(const Duohash& key): key_(key) {init();}
@@ -85,9 +89,11 @@ namespace uvw
     virtual void pull() = 0;
     virtual const std::type_index type_index() = 0;
 
+    json to_json();
+    bool from_json(json& data);
+
     protected:
     template<class T> static T null_;
-    template<class T> static size_t var_type;
   };
 
   template<class T>
