@@ -128,6 +128,7 @@ namespace uvw
 
     // json values
     std::unordered_map<std::string, T> values;
+
     json to_json() override
     {
       json data = Variable::to_json();
@@ -137,9 +138,11 @@ namespace uvw
       }
       return data;
     }
+
     bool from_json(json& data) override
     {
-      if (data.find("values") != data.end())
+      if (std::is_fundamental<T>() &&
+        data.find("values") != data.end())
       {
         for (auto& itr : data["values"].items())
         {
