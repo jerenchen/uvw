@@ -44,7 +44,7 @@ namespace uvw
       INPUT
     };
 
-    std::map<std::string, int> properties;
+    std::unordered_map<std::string, int> properties;
 
     protected:
 
@@ -89,8 +89,8 @@ namespace uvw
     virtual void pull() = 0;
     virtual const std::type_index type_index() = 0;
 
-    json to_json();
-    bool from_json(json& data);
+    virtual json to_json();
+    virtual bool from_json(json& data);
 
     protected:
     template<class T> static T null_;
@@ -124,6 +124,29 @@ namespace uvw
       {
         value_ = *((T*)data_src_);
       }
+    }
+
+    // json values
+    std::unordered_map<std::string, T> values;
+    json to_json() override
+    {
+      json data = Variable::to_json();
+      for (auto& itr : values)
+      {
+        data["values"][itr.first] = itr.second;
+      }
+      return data;
+    }
+    bool from_json(json& data) override
+    {
+      if (data.find("values") != data.end())
+      {
+        for (auto& itr : data["values"].items())
+        {
+          values[itr.key()] = itr.value().get<T>();
+        }
+      }
+      return Variable::from_json(data);;
     }
 
     // type-specific members

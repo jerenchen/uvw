@@ -14,6 +14,8 @@ class MultProc: public Processor
   bool initialize() override
   {
     x_.properties["parameter"] = Variable::INPUT;
+    y_.values["min"] = -20.25;
+    y_.values["max"] = 25.5;
     return (
       reg_var<double>("y", y_) &&
       reg_var<double>("x", x_) &&
@@ -155,7 +157,9 @@ int main(int argc, char * argv[])
   // deserialize
   ws::from_json(json_stream);
 
-  std::cout << "json identical? " << (json_stream == ws::to_json()) << std::endl;
+  std::cout << "json identical? " <<
+    (json_stream.dump().compare(ws::to_json().dump()) == 0) <<
+    std::endl;
 
   for (auto* ptr : ws::procs("PreAdd"))
   {
