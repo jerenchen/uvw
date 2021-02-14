@@ -17,14 +17,20 @@ bool uvw::operator==(const uvw::Duohash& lhs, const uvw::Duohash& rhs)
 
 // Variable impl.
 
+void uvw::Variable::unlink()
+{
+  if (uvw::Workspace::links_.find(key_) != uvw::Workspace::links_.end())
+  {
+    uvw::Workspace::links_.erase(key_);
+  }
+  src_ = Duohash(nullptr,"");
+  data_src_ = nullptr;
+}
+
 bool uvw::Variable::link(uvw::Variable* src)
 {
   if (type_index() != src->type_index())
   {
-    if (uvw::Workspace::links_.find(key_) != uvw::Workspace::links_.end())
-    {
-      uvw::Workspace::links_.erase(key_);
-    }
     unlink();
     return false;
   }
@@ -96,9 +102,18 @@ std::string uvw::Workspace::stats()
 
 void uvw::Workspace::clear()
 {
-  links_.clear();
-  vars_.clear(); // deregister all vars
-  procs_.clear(); // untrack all procs
+  for (auto* proc_ptr : procs_)
+  {
+    for (const auto& key : proc_ptr->var_keys_)
+    {
+      if (get(key))
+      {
+        get(key)->unlink();
+      }
+      del(key);
+    }
+  }
+  procs_.clear(); // untrack procs
 }
 
 bool uvw::Workspace::link(const uvw::Duohash& src, const uvw::Duohash& dst)
@@ -375,7 +390,7 @@ json uvw::Workspace::to_json()
 {
   json data;
 
-  std::map<void*, unsigned int> indices_by_procs;
+  std::unordered_map<void*, unsigned int> indices_by_procs;
   data["procs"] = json::array();
   for (const auto& proc : procs_)
   {
