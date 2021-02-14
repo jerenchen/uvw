@@ -82,7 +82,7 @@ namespace uvw
     template<typename T> bool is_of_type();
     template<typename T> static bool is_null(const T& obj);
 
-    void unlink() {src_ = Duohash(nullptr,""); data_src_ = nullptr;}
+    void unlink();
     bool link(Variable* src);
     const Duohash src() {return src_;}
 
