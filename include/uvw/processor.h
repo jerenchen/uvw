@@ -17,8 +17,7 @@ namespace uvw
 
     protected:
 
-    std::vector<Duohash> keys_by_creation_;
-    std::unordered_set<Duohash> var_keys_;
+    std::vector<Duohash> var_keys_;
     std::string type_;
 
     public:
@@ -73,8 +72,7 @@ bool uvw::Processor::reg_var(const std::string& label, Var<T>& v)
     return false;
   }
 
-  var_keys_.insert(key);
-  keys_by_creation_.push_back(key);
+  var_keys_.push_back(key);
 
   return true;
 }
