@@ -79,13 +79,36 @@ namespace uvw
     static std::vector<Duohash> schedule(const Duohash& key);
     static bool execute(const std::vector<Duohash>& seq, bool preprocess = false);
 
-    protected:
+    // vars/links/procs range-based
 
+    static std::set<Processor*> procs(
+      const std::string& proc_type = std::string()
+    );
+    static std::unordered_map<Duohash, Variable*> vars(
+      Processor* proc = nullptr
+    );
+    static std::unordered_map<Duohash, Duohash>& links() {return links_;}
+
+    protected:
+    // TODO: unordered map
     static std::set<Processor*> procs_;
 
     static bool exists_(Processor* proc_ptr);
     static bool track_(Processor* proc_ptr);
     static bool untrack_(Processor* proc_ptr);
+
+    public:
+    // proc funcs
+    static void clear();
+    static std::string stats();
+
+    // proc json serialization
+    static json to_json();
+    static bool from_json(json& data);
+
+    // proc library registeration
+
+    protected:
 
     static std::map<std::string, std::function<Processor*()> > lib_;
 
@@ -96,20 +119,6 @@ namespace uvw
       std::function<Processor*()> proc_func
     );
     static Processor* create(const std::string& proc_type);
-
-    static json to_json();
-    static bool from_json(json& data);
-
-    static std::unordered_map<Duohash, Variable*> vars(
-      Processor* proc = nullptr
-    );
-    static std::set<Processor*> procs(
-      const std::string& proc_type = std::string()
-    );
-    static std::unordered_map<Duohash, Duohash>& links() {return links_;}
-
-    static void clear();
-    static std::string stats();
   };
 
   using ws = Workspace;

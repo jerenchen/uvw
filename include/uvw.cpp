@@ -74,7 +74,7 @@ uvw::Processor::Processor(const uvw::Processor& p)
 
 uvw::Processor& uvw::Processor::operator=(const uvw::Processor& p)
 {
-  var_keys_ = std::unordered_set<uvw::Duohash>(p.var_keys_);
+  var_keys_ = std::vector<uvw::Duohash>(p.var_keys_);
   return *this;
 }
 
@@ -359,7 +359,7 @@ json uvw::Processor::to_json()
   data["type"] = type_;
 
   data["vars"] = json::array();
-  for (auto& key : keys_by_creation_)
+  for (auto& key : var_keys_)
   {
     if (get(key.var_str))
     {
