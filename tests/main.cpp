@@ -1,4 +1,3 @@
-
 #include <uvw.h>
 using namespace uvw;
 
@@ -25,7 +24,7 @@ class MultProc: public Processor
 
   bool preprocess() override
   {
-    std::cout << "No action in taken pre-processing ..." << std::endl;
+    std::cout << "No action taken in pre-processing ..." << std::endl;
     return true;
   }
 
@@ -142,12 +141,12 @@ int main(int argc, char * argv[])
   std::cout << ws::stats() << std::endl;
 
   // serialize
-  auto json_stream = ws::to_json();
+  auto json_stream = ws::current().to_json();
   std::cout << json_stream.dump(2) << std::endl;
 
   // clear workspace
   std::cout << "Clean up workspace before deserializing..." << std::endl;
-  ws::clear();
+  ws::current().clear();
   seq.clear();
   p = q = nullptr;
   add = nullptr; mult = nullptr;
@@ -155,10 +154,10 @@ int main(int argc, char * argv[])
   std::cout << ws::stats() << std::endl;
 
   // deserialize
-  ws::from_json(json_stream);
+  ws::current().from_json(json_stream);
 
   std::cout << "json identical? " <<
-    (json_stream.dump().compare(ws::to_json().dump()) == 0) <<
+    (json_stream.dump().compare(ws::current().to_json().dump()) == 0) <<
     std::endl;
 
   for (auto* ptr : ws::procs("PreAdd"))
@@ -183,6 +182,13 @@ int main(int argc, char * argv[])
 
   std::cout << "\'z\' now equals " << mult->ref<double>("z") << " (expected 22)" << std::endl;
 
+  std::cout << ws::stats() << std::endl;
+
+  std::cout << "Adding a new workspace from json stream..." << std::endl;
+
+  ws::add().from_json(json_stream);
+
+  std::cout << ws::current().to_json().dump(2) << std::endl;
   std::cout << ws::stats() << std::endl;
 
   return 1;
