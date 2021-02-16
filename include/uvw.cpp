@@ -96,7 +96,10 @@ uvw::Workspace::~Workspace()
 {
   for (auto* proc_ptr : proc_ptrs_)
   {
-    delete proc_ptr;
+    if (proc_ptr)
+    {
+      delete proc_ptr;
+    }
     procs_.erase(proc_ptr);
   }
   proc_ptrs_.clear();
@@ -361,7 +364,10 @@ void uvw::Workspace::clear()
 {
   for (auto* proc_ptr : current().proc_ptrs_)
   {
-    delete proc_ptr;
+    if (proc_ptr)
+    {
+      delete proc_ptr;
+    }
     procs_.erase(proc_ptr);
   }
   current().proc_ptrs_.clear();
