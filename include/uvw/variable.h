@@ -92,6 +92,9 @@ namespace uvw
     virtual json to_json();
     virtual bool from_json(json& data);
 
+    const std::string type_str();
+    static std::map<std::type_index, std::string> type_strs;
+
     protected:
     template<class T> static T null_;
   };
