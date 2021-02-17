@@ -17,6 +17,20 @@ bool uvw::operator==(const uvw::Duohash& lhs, const uvw::Duohash& rhs)
   return lhs.raw_ptr == rhs.raw_ptr && lhs.var_str == rhs.var_str;
 }
 
+// Variable fundamental types; can be added to account for more types
+
+std::map<std::type_index, std::string> uvw::Variable::type_strs = {
+  {std::type_index(typeid(int)), "int"},
+  {std::type_index(typeid(double)), "double"},
+  {std::type_index(typeid(std::string)), "string"}
+};
+
+const std::string uvw::Variable::type_str()
+{
+  return (type_strs.find(type_index()) == type_strs.end())?
+    "UNKNOWN" : type_strs[type_index()];
+}
+
 // Variable impl.
 
 void uvw::Variable::unlink()
@@ -479,7 +493,7 @@ json uvw::Variable::to_json()
 {
   json data;
   data["label"] = label();
-  data["typeid"] = type_index().hash_code();
+  data["type"] = type_str();
   for (auto& itr : properties)
   {
     data["properties"][itr.first] = itr.second;

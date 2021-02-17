@@ -12,6 +12,7 @@ class MultProc: public Processor
 
   bool initialize() override
   {
+    std::cout << "Adding 'add' proc with vars \'a\' \'b\' & \'c\'..." << std::endl;
     x_.properties["parameter"] = Variable::INPUT;
     y_.values["min"] = -20.25;
     y_.values["max"] = 25.5;
@@ -49,6 +50,7 @@ class PreAddProc: public Processor
 
   bool initialize() override
   {
+    std::cout << "Adding 'mult' proc with vars \'x\' \'y\' & \'z\'..." << std::endl;
     return (
       reg_var<double>("a", a_) &&
       reg_var<double>("b", b_) &&
@@ -83,6 +85,8 @@ struct MyWorkpace: public uvw::Workspace
     //   z = (a + b) * y
     auto* p = new_proc("PreAdd");
     auto* q = new_proc("Mult");
+
+    std::cout << "Linking 'x' to 'c'..." << std::endl;
     ws::link(uvw::duo(p,"c"), uvw::duo(q,"x"));
   }
 
@@ -106,8 +110,6 @@ int main(int argc, char * argv[])
   uvw::ws::reg_proc("Mult", ([](){return new MultProc();})); // inplace func
 
   MyWorkpace mws;
-
-  std::cout << "Adding 'add' proc with vars \'a\' \'b\' & \'c\'..." << std::endl;
   auto* add = mws.preadd_proc();
   
   // create duo hash keys
@@ -125,9 +127,7 @@ int main(int argc, char * argv[])
   ws::ref<double>(add_b) = 3;
   std::cout << "\'add->b\' is set to " << ws::ref<double>(add_b) << std::endl;
 
-  std::cout << "Adding 'mult' proc with vars \'x\' \'y\' & \'z\'..." << std::endl;
   auto* mult = mws.mult_proc();
-
   uvw::duo mult_x(mult,"x");
   uvw::duo mult_y(mult,"y");
   uvw::duo mult_z(mult,"z");
