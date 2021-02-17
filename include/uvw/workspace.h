@@ -94,6 +94,7 @@ namespace uvw
     public:
 
     void clear();
+    Processor* new_proc(const std::string& proc_type);
 
     // proc json serialization
     json to_json();
@@ -102,13 +103,12 @@ namespace uvw
     // workspace
     protected:
 
-    static Workspace* curr_;
     static std::unordered_set<Workspace*> ws_;
 
     // per-workspace proc container
     std::vector<Processor*> proc_ptrs_;
 
-    // protected to ensure we only instanciate via "add"
+    // protected constructor
     Workspace(){}
 
     public:
@@ -116,9 +116,6 @@ namespace uvw
     ~Workspace();
     Workspace(const Workspace& w);
     Workspace& operator=(const Workspace& w);
-
-    static Workspace& add();
-    static Workspace& current();
 
     // vars/links/procs range-based
 
