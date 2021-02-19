@@ -101,9 +101,14 @@ uvw::Variable* uvw::Processor::get(const std::string& label)
 #include <stack>
 #include <vector>
 
+uvw::Workspace::Workspace()
+{
+  track_(this);
+}
 uvw::Workspace::~Workspace()
 {
   clear();
+  untrack_(this);
 }
 uvw::Workspace::Workspace(const Workspace& w)
 {
@@ -166,8 +171,38 @@ bool uvw::Workspace::untrack_(uvw::Processor* proc_ptr)
   return false;
 }
 
+bool uvw::Workspace::exists_(uvw::Workspace* ws_ptr)
+{
+  return (
+    uvw::Workspace::ws_.find(ws_ptr) !=
+    uvw::Workspace::ws_.end()
+  );
+}
+
+bool uvw::Workspace::track_(uvw::Workspace* ws_ptr)
+{
+  if (!uvw::Workspace::exists_(ws_ptr))
+  {
+    uvw::Workspace::ws_.insert(ws_ptr);
+    return true;
+  }
+  return false;
+}
+
+bool uvw::Workspace::untrack_(uvw::Workspace* ws_ptr)
+{
+  if (uvw::Workspace::exists_(ws_ptr))
+  {
+    return uvw::Workspace::ws_.erase(ws_ptr);
+  }
+  return false;
+}
+
 void uvw::Workspace::clear()
 {
+  in_ = out_ = Duohash();
+  seq_.clear();
+  procs_by_keys_.clear();
   auto itr = proc_ptrs_.begin();
   while (itr != proc_ptrs_.end())
   {
@@ -182,6 +217,10 @@ uvw::Processor* uvw::Workspace::new_proc(const std::string& proc_type)
   if (proc_ptr)
   {
     proc_ptrs_.push_back(proc_ptr);
+    for (auto key : proc_ptr->var_keys_)
+    {
+      procs_by_keys_[key] = proc_ptr;
+    }
   }
   return proc_ptr;
 }
@@ -197,6 +236,11 @@ bool uvw::Workspace::reg_proc(
   }
   uvw::Workspace::lib_[proc_type] = proc_func;
   return true;
+}
+
+bool uvw::Workspace::has_var(const uvw::Duohash& key)
+{
+  return (procs_by_keys_.find(key) != procs_by_keys_.end());
 }
 
 uvw::Processor* uvw::Workspace::create(const std::string& proc_type)
@@ -362,6 +406,33 @@ bool uvw::Workspace::execute(
   return true;
 }
 
+bool uvw::Workspace::set_input(const Duohash& key)
+{
+  if (has_var(key))
+  {
+    in_ = key;
+    return true;
+  }
+  return false;
+}
+
+bool uvw::Workspace::set_output(const Duohash& key)
+{
+  seq_.clear();
+  if (has_var(key))
+  {
+    out_ = key;
+    seq_ = uvw::Workspace::schedule(out_);
+    return (seq_.size() > 0);
+  }
+  return false;
+}
+
+bool uvw::Workspace::process(bool preprocess)
+{
+  return uvw::Workspace::execute(seq_, preprocess);
+}
+
 // json
 
 json uvw::Workspace::to_json()
@@ -383,17 +454,18 @@ json uvw::Workspace::to_json()
     data["procs"].back()["index"] = index;
   }
 
+  auto is_indexed_ = [&indices_by_procs](void* ptr)
+  {
+    return (indices_by_procs.find(ptr) !=
+        indices_by_procs.end());
+  };
+
   data["links"] = json::array();
   for (const auto& itr : links_)
   {
-    if (
-      indices_by_procs.find(itr.first.raw_ptr) ==
-        indices_by_procs.end() &&
-      indices_by_procs.find(itr.second.raw_ptr) ==
-        indices_by_procs.end()
-    )
+    if (!is_indexed_(itr.first.raw_ptr) && !is_indexed_(itr.second.raw_ptr))
     {
-      // both end of link out of ws scope
+      // both end of link are not in ws scope
       continue;
     }
 
@@ -405,6 +477,16 @@ json uvw::Workspace::to_json()
     data["links"].push_back(link);
   }
 
+  if (has_var(in_) && is_indexed_(in_.raw_ptr))
+  {
+    data["in"]["index"] = indices_by_procs[in_.raw_ptr];
+    data["in"]["label"] = in_.var_str;
+  }
+  if (has_var(out_) && is_indexed_(out_.raw_ptr))
+  {
+    data["out"]["index"] = indices_by_procs[out_.raw_ptr];
+    data["out"]["label"] = out_.var_str;
+  }
   return data;
 }
 
@@ -430,15 +512,17 @@ bool uvw::Workspace::from_json(json& data)
     }
   }
 
+  auto has_index_ = [&procs_by_indices](int index)
+  {
+    return (procs_by_indices.find(index) !=
+      procs_by_indices.end());
+  };
+
   // intra-links amongst ws procs/vars
   for (auto& data_itr : data["links"])
   {
-    if (
-      procs_by_indices.find(data_itr["var"]["index"].get<int>()) ==
-      procs_by_indices.end() ||
-      procs_by_indices.find(data_itr["src"]["index"].get<int>()) ==
-      procs_by_indices.end()
-    )
+    if (!has_index_(data_itr["var"]["index"].get<int>()) ||
+          !has_index_(data_itr["src"]["index"].get<int>()))
     {
       continue;
     }
@@ -451,6 +535,19 @@ bool uvw::Workspace::from_json(json& data)
       std::cerr << "Cannot link between " << src << " & " << dst << std::endl;
       return false;
     }
+  }
+
+  if (data.find("in") != data.end() &&
+      has_index_(data["in"]["index"].get<int>()))
+  {
+    auto* p = procs_by_indices[data["in"]["index"].get<int>()];
+    set_input(uvw::Duohash(p, data["in"]["label"].get<std::string>()));
+  }
+  if (data.find("out") != data.end() &&
+      has_index_(data["out"]["index"].get<int>()))
+  {
+    auto* q = procs_by_indices[data["out"]["index"].get<int>()];
+    set_output(uvw::Duohash(q, data["out"]["label"].get<std::string>()));
   }
   return true;
 }

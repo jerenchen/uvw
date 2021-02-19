@@ -88,6 +88,8 @@ struct MyWorkpace: public uvw::Workspace
 
     std::cout << "Linking 'x' to 'c'..." << std::endl;
     ws::link(uvw::duo(p,"c"), uvw::duo(q,"x"));
+
+    set_output(uvw::duo(q,"z"));
   }
 
   // helper to get procs
@@ -137,9 +139,7 @@ int main(int argc, char * argv[])
   std::cout << "\'mult->y\' is set to " << mult->y_.get() << std::endl;
 
   // generate processing sequence
-  auto seq = ws::schedule(mult_z);
-
-  ws::execute(seq, true);
+  mws.process(true);
 
   std::cout << "\'z\' equals " << ws::ref<double>(mult_z) << " (expected 35)" << std::endl;
 
@@ -149,12 +149,12 @@ int main(int argc, char * argv[])
   mult->y_.set(4);
   std::cout << "\'mult->y\' is now set to " << mult->y_.get() << std::endl;
 
-  ws::execute(seq);
+  mws.process();
 
   std::cout << "\'z\' now equals " << mult->z_() << " (expected 20)" << std::endl;
 
   std::cout << "Re-running with pre-processes..." << std::endl;
-  ws::execute(seq, true);
+  mws.process(true);
 
   std::cout << "\'z\' now equals " << mult->ref<double>("z") << " (expected 36)" << std::endl;
 
@@ -167,7 +167,6 @@ int main(int argc, char * argv[])
   // clear workspace
   std::cout << "Clean up workspace before deserializing..." << std::endl;
   mws.clear();
-  seq.clear();
 
   std::cout << ws::stats() << std::endl;
 
@@ -187,8 +186,7 @@ int main(int argc, char * argv[])
   add->b_.set(3);
   mult->y_.set(2);
 
-  seq = ws::schedule(uvw::duo(mult,"z"));
-  ws::execute(seq, true);
+  mws.process(true);
 
   std::cout << "\'z\' now equals " << mult->ref<double>("z") << " (expected 22)" << std::endl;
 

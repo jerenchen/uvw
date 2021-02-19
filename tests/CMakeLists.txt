@@ -5,5 +5,4 @@ if(UVW_USE_STATIC_LIBRARY)
 endif()
 
 add_executable(uvw_test main.cpp)
-target_link_libraries(uvw_test)
 install(TARGETS uvw_test DESTINATION .)
