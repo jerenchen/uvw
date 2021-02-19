@@ -85,34 +85,45 @@ namespace uvw
 
     protected:
 
-    static std::unordered_set<Processor*> procs_;
+    static std::unordered_set<Workspace*> ws_;
+    static bool exists_(Workspace* ws_ptr);
+    static bool track_(Workspace* ws_ptr);
+    static bool untrack_(Workspace* ws_ptr);
 
+    static std::unordered_set<Processor*> procs_;
     static bool exists_(Processor* proc_ptr);
     static bool track_(Processor* proc_ptr);
     static bool untrack_(Processor* proc_ptr);
 
+    // workspace instance vars/funcs
     public:
 
     void clear();
     Processor* new_proc(const std::string& proc_type);
 
+    bool has_var(const Duohash& key);
+
     // proc json serialization
     json to_json();
     bool from_json(json& data);
 
-    // workspace
-    protected:
+    // workspace processing
+    bool set_input(const Duohash& key);
+    bool set_output(const Duohash& key);
+    bool process(bool preprocess = false);
 
-    static std::unordered_set<Workspace*> ws_;
+    protected:
 
     // per-workspace proc container
     std::vector<Processor*> proc_ptrs_;
+    std::unordered_map<Duohash, Processor*> procs_by_keys_;
 
-    // protected constructor
-    Workspace(){}
+    Duohash in_, out_;
+    std::vector<Duohash> seq_;
 
     public:
 
+    Workspace();
     ~Workspace();
     Workspace(const Workspace& w);
     Workspace& operator=(const Workspace& w);
