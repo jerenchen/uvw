@@ -40,6 +40,9 @@ namespace uvw
 
     json to_json();
     bool from_json(json& data);
+
+    const std::string& type_str() const {return type_;}
+    const std::vector<Duohash>& var_keys() const {return var_keys_;}
   };
 
 };

@@ -78,6 +78,7 @@ namespace uvw
     const Duohash& key() {return key_;}
     const std::string label() {return key_.var_str;}
     Processor* proc();
+    void* raw_data() {return data_ptr_;}
 
     template<typename T> bool is_of_type();
     template<typename T> static bool is_null(const T& obj);

@@ -87,7 +87,9 @@ struct MyWorkpace: public uvw::Workspace
     auto* q = new_proc("Mult");
 
     std::cout << "Linking 'x' to 'c'..." << std::endl;
-    ws::link(uvw::duo(p,"c"), uvw::duo(q,"x"));
+    q->get("x")->link(p->get("c"));
+    // or alternatively...
+    //ws::link(uvw::duo(p,"c"), uvw::duo(q,"x"));
 
     set_output(uvw::duo(q,"z"));
   }

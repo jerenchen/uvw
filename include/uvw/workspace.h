@@ -39,8 +39,7 @@ namespace uvw
       if (has(key))
       {
         vars_[key]->unlink();
-        vars_.erase(key);
-        return true;
+        return (vars_.erase(key) > 0);
       }
       return false;
     }
@@ -102,6 +101,7 @@ namespace uvw
     Processor* new_proc(const std::string& proc_type);
 
     bool has_var(const Duohash& key);
+    const std::vector<Processor*>& proc_ptrs() const {return proc_ptrs_;}
 
     // proc json serialization
     json to_json();

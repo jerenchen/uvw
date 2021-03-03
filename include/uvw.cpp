@@ -162,7 +162,7 @@ bool uvw::Workspace::untrack_(uvw::Processor* proc_ptr)
 {
   if (uvw::Workspace::exists_(proc_ptr))
   {
-    for (auto& key : proc_ptr->var_keys_)
+    for (const auto& key : proc_ptr->var_keys())
     {
       uvw::Workspace::del(key);
     }
@@ -217,7 +217,7 @@ uvw::Processor* uvw::Workspace::new_proc(const std::string& proc_type)
   if (proc_ptr)
   {
     proc_ptrs_.push_back(proc_ptr);
-    for (auto key : proc_ptr->var_keys_)
+    for (const auto& key : proc_ptr->var_keys())
     {
       procs_by_keys_[key] = proc_ptr;
     }
@@ -321,7 +321,7 @@ std::vector<uvw::Duohash>
     proc = queue_proc.front();
     queue_proc.pop();
 
-    for (auto& vk : proc->var_keys_)
+    for (const auto& vk : proc->var_keys())
     {
       if (!has(vk))
       {
@@ -559,7 +559,7 @@ json uvw::Processor::to_json()
   data["type"] = type_;
 
   data["vars"] = json::array();
-  for (auto& key : var_keys_)
+  for (const auto& key : var_keys())
   {
     if (get(key.var_str))
     {
