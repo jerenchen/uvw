@@ -1,14 +1,15 @@
+#include <catch2/catch.hpp>
+
 #include <uvw.h>
 using namespace uvw;
 
 
 // Multply proc
-class MultProc: public Processor
+struct Multiply: public Processor
 {
-  public:
   Var<double> x_, y_, z_;
 
-  MultProc(): Processor() {}
+  Multiply(): Processor() {}
 
   bool initialize() override
   {
@@ -40,13 +41,13 @@ class MultProc: public Processor
 };
 
 // Precomputed Addition Proc
-class PreAddProc: public Processor
+struct PreAdd: public Processor
 {
   double d_; // internal
   public:
   Var<double> a_, b_, c_;
 
-  PreAddProc(): Processor() {}
+  PreAdd(): Processor() {}
 
   bool initialize() override
   {
@@ -74,8 +75,6 @@ class PreAddProc: public Processor
   }
 };
 
-std::function<Processor*()> create_preadd = [](){return new PreAddProc();};
-
 // define workspace
 struct MyWorkpace: public uvw::Workspace
 {
@@ -84,7 +83,7 @@ struct MyWorkpace: public uvw::Workspace
     // build nodes and link vars so that:
     //   z = (a + b) * y
     auto* p = new_proc("PreAdd");
-    auto* q = new_proc("Mult");
+    auto* q = new_proc("Multiply");
 
     std::cout << "Linking 'x' to 'c'..." << std::endl;
     q->get("x")->link(p->get("c"));
@@ -95,102 +94,78 @@ struct MyWorkpace: public uvw::Workspace
   }
 
   // helper to get procs
-  PreAddProc* preadd_proc()
+  PreAdd* preadd_proc()
   {
     return proc_ptrs_.size()?
-      static_cast<PreAddProc*>(proc_ptrs_[0]) : nullptr;
+      static_cast<PreAdd*>(proc_ptrs_[0]) : nullptr;
   };
-  MultProc* mult_proc()
+  Multiply* mult_proc()
   {
     return proc_ptrs_.size()>1?
-      static_cast<MultProc*>(proc_ptrs_[1]) : nullptr;
+      static_cast<Multiply*>(proc_ptrs_[1]) : nullptr;
   };
 };
 
-int main(int argc, char * argv[])
+TEST_CASE("Processing...", "[Processing]")
 {
   // proc registration
-  uvw::ws::reg_proc("PreAdd", create_preadd);
-  uvw::ws::reg_proc("Mult", ([](){return new MultProc();})); // inplace func
+  uvw::ws::reg_proc("PreAdd", ([](){return new PreAdd();}));
+  uvw::ws::reg_proc("Multiply", ([](){return new Multiply();}));
 
   MyWorkpace mws;
   auto* add = mws.preadd_proc();
-  
-  // create duo hash keys
+  auto* mult = mws.mult_proc();
   uvw::duo add_a(add,"a");
   uvw::duo add_b(add,"b");
   uvw::duo add_c(add,"c");
-
-  std::cout << "'add->c' is a double? " << add->c_.is_of_type<double>() << std::endl;
-  std::cout << "'add->c' is an int? " << add->c_.is_of_type<int>() << std::endl;
-
-  // access variable's reference through proc
-  add->ref<double>("a") = 2;
-  std::cout << "\'add->a\' is set to " << add->ref<double>("a") << std::endl;
-  // access through workspace via duo hash key
-  ws::ref<double>(add_b) = 3;
-  std::cout << "\'add->b\' is set to " << ws::ref<double>(add_b) << std::endl;
-
-  auto* mult = mws.mult_proc();
   uvw::duo mult_x(mult,"x");
   uvw::duo mult_y(mult,"y");
   uvw::duo mult_z(mult,"z");
 
-  // access variable's reference directly (if accessiable i.e. public)
+  // (2 + 3) * 7 = 35
+  add->ref<double>("a") = 2;
+  ws::ref<double>(add_b) = 3;
   mult->y_.set(7);
-  std::cout << "\'mult->y\' is set to " << mult->y_.get() << std::endl;
 
-  // generate processing sequence
   mws.process(true);
+  REQUIRE( ws::ref<double>(mult_z) == 35 );
 
-  std::cout << "\'z\' equals " << ws::ref<double>(mult_z) << " (expected 35)" << std::endl;
-
+  // although 'a' is set to 6, 'add' won't be pre-processed this time
   add->a_.set(6);
-  std::cout << "\'add->a\' is now set to " << ws::ref<double>(add_a) << 
-    ", but 'add' won't be pre-processed this time." << std::endl;
   mult->y_.set(4);
-  std::cout << "\'mult->y\' is now set to " << mult->y_.get() << std::endl;
 
+  // run without pre-process set to true (defaults to false)
+  // (2 + 3) * 4 = 20
   mws.process();
+  REQUIRE( mult->z_() == 20 );
 
-  std::cout << "\'z\' now equals " << mult->z_() << " (expected 20)" << std::endl;
-
-  std::cout << "Re-running with pre-processes..." << std::endl;
+  // run with pre-process set to true
+  // (6 + 3) * 4 = 36
   mws.process(true);
+  REQUIRE( mult->z_() == 36 );
 
-  std::cout << "\'z\' now equals " << mult->ref<double>("z") << " (expected 36)" << std::endl;
-
-  std::cout << ws::stats() << std::endl;
-
-  // serialize
+  // json serialization
   auto json_stream = mws.to_json();
-  std::cout << json_stream.dump(2) << std::endl;
 
   // clear workspace
-  std::cout << "Clean up workspace before deserializing..." << std::endl;
   mws.clear();
+  REQUIRE( uvw::ws::procs().size() == 0 );
+  REQUIRE( uvw::ws::links().size() == 0 );
+  REQUIRE( uvw::ws::vars().size() == 0 );
 
-  std::cout << ws::stats() << std::endl;
-
-  // deserialize
+  // deserialization
   mws.from_json(json_stream);
 
-  std::cout << "json identical? " <<
-    (json_stream.dump().compare(mws.to_json().dump()) == 0) <<
-    std::endl;
-
-  std::cout << ws::stats() << std::endl;
+  // verify if json input & output matches
+  REQUIRE( json_stream.dump().compare(mws.to_json().dump()) == 0 );
 
   add = mws.preadd_proc();
   mult = mws.mult_proc();
-
   add->a_.set(8);
   add->b_.set(3);
   mult->y_.set(2);
 
+  // (8 + 3) * 2 = 22
   mws.process(true);
-
-  std::cout << "\'z\' now equals " << mult->ref<double>("z") << " (expected 22)" << std::endl;
-
-  return 1;
+  REQUIRE( mult->ref<double>("z") == 22 );
 }

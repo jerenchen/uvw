@@ -33,14 +33,11 @@ const std::string uvw::Variable::type_str()
 
 // Variable impl.
 
-void uvw::Variable::unlink()
+bool uvw::Variable::unlink()
 {
-  if (uvw::Workspace::links_.find(key_) != uvw::Workspace::links_.end())
-  {
-    uvw::Workspace::links_.erase(key_);
-  }
-  src_ = Duohash(nullptr,"");
+  src_.nullify();
   data_src_ = nullptr;
+  return (uvw::Workspace::links_.erase(key_) > 0);
 }
 
 bool uvw::Variable::link(uvw::Variable* src)
