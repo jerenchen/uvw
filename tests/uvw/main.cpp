@@ -1,4 +1,7 @@
-#include <uvw.h>
+#define CATCH_CONFIG_MAIN
+#include <catch2/catch.hpp>
+
+/*#include <uvw.h>
 using namespace uvw;
 
 
@@ -193,4 +196,4 @@ int main(int argc, char * argv[])
   std::cout << "\'z\' now equals " << mult->ref<double>("z") << " (expected 22)" << std::endl;
 
   return 1;
-}
+}*/

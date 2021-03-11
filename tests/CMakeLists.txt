@@ -1,8 +1,26 @@
-project(uvw_test)
+project(uvw_tests)
 
-if(UVW_USE_STATIC_LIBRARY)
-    add_definitions(-DUVW_BUILD_STATIC)
-endif()
+include(FetchContent)
+FetchContent_Declare(Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        v2.x
+)
+FetchContent_MakeAvailable(Catch2)
+FetchContent_GetProperties(Catch2
+  SOURCE_DIR CATCH2_SOURCE
+)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+    ${CATCH2_SOURCE}/Contrib
+)
 
-add_executable(uvw_test main.cpp)
-install(TARGETS uvw_test DESTINATION .)
+# exclude implementation in headers
+add_definitions(-DUVW_BUILD_STATIC)
+
+file(GLOB UVW_TESTS uvw/*.cpp)
+
+add_executable(uvw_tests ${UVW_TESTS} ../include/uvw.cpp)
+target_link_libraries(uvw_tests PRIVATE Catch2::Catch2)
+
+include(CTest)
+include(Catch)
+catch_discover_tests(uvw_tests)
