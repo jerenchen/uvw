@@ -8,7 +8,7 @@ struct TestProc : uvw::Processor
     uvw::Var<double> x_;
 };
 
-TEST_CASE("Duohash...", "[Duohash]")
+TEST_CASE("Duohash...", "[duo]")
 {
     uvw::Processor p_;
     uvw::Var<double> v_;
