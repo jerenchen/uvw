@@ -324,11 +324,11 @@ std::vector<uvw::Duohash>
       {
         continue;
       }
-      Variable* var = vars_[vk];
+      uvw::Variable* var = vars_[vk];
 
       if (has(var->src()))
       {
-        Variable* src = vars_[var->src()];
+        uvw::Variable* src = vars_[var->src()];
         uvw::Processor* src_proc = src->proc();
         if (src_proc)
         {
