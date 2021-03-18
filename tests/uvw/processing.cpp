@@ -36,7 +36,15 @@ TEST_CASE("Processing...", "[Processing]")
 
   // run without pre-process set to true (defaults to false)
   // (2 + 3) * 4 = 20
-  BENCHMARK("Preprocess OFF")
+  uvw::var::data_pull = true;
+  BENCHMARK("Preprocess OFF & Data-pull ON")
+  {
+    mws.process();
+  };
+  REQUIRE( mult->z_() == 20 );
+
+  uvw::var::data_pull = false;
+  BENCHMARK("Preprocess OFF & Data-pull OFF")
   {
     mws.process();
   };
@@ -44,7 +52,15 @@ TEST_CASE("Processing...", "[Processing]")
 
   // run with pre-process set to true
   // (6 + 3) * 4 = 36
-  BENCHMARK("Preprocess ON")
+  uvw::var::data_pull = true;
+  BENCHMARK("Preprocess ON & Data-pull ON")
+  {
+    mws.process(true);
+  };
+  REQUIRE( mult->z_() == 36 );
+
+  uvw::var::data_pull = false;
+  BENCHMARK("Preprocess ON & Data-pull OFF")
   {
     mws.process(true);
   };
