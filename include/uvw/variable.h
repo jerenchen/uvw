@@ -28,6 +28,8 @@ namespace uvw
 
     public:
 
+    static bool data_pull;
+
     enum Dimension
     {
         DYN = -1,   // Dynamic size
