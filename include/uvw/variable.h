@@ -28,6 +28,8 @@ namespace uvw
 
     public:
 
+    static bool data_pull;
+
     enum Dimension
     {
         DYN = -1,   // Dynamic size
@@ -157,10 +159,14 @@ namespace uvw
     }
 
     // type-specific members
-    T& ref() {return value_;}
-    T& operator()() {return value_;}
+    T& ref()
+    {
+      return (data_pull || data_src_ == nullptr)?
+        value_ : *((T*)data_src_);
+    }
+    T& operator()() {return ref();}
+    T get() {return ref();}
     void set(const T& val) {value_ = val;}
-    T get() {return value_;}
   };
 
   // impl.

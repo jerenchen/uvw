@@ -77,8 +77,8 @@ namespace uvw
 
     static bool link(const Duohash& src, const Duohash& dst);
 
-    static std::vector<Duohash> schedule(const Duohash& key);
-    static bool execute(const std::vector<Duohash>& seq, bool preprocess = false);
+    static std::vector<Processor*> schedule(const Duohash& key);
+    static bool execute(const std::vector<Processor*>& seq, bool preprocess = false);
 
     static std::string stats();
 
@@ -119,7 +119,7 @@ namespace uvw
     std::unordered_map<Duohash, Processor*> procs_by_keys_;
 
     Duohash in_, out_;
-    std::vector<Duohash> seq_;
+    std::vector<Processor*> seq_;
 
     public:
 

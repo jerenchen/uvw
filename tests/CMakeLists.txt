@@ -14,7 +14,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 )
 
 # exclude implementation in headers
-add_definitions(-DUVW_BUILD_STATIC)
+add_definitions(
+  -DUVW_BUILD_STATIC
+  -DCATCH_CONFIG_ENABLE_BENCHMARKING
+)
 
 file(GLOB UVW_TESTS uvw/*.cpp)
 

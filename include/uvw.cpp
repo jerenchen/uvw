@@ -19,6 +19,8 @@ bool uvw::operator==(const uvw::Duohash& lhs, const uvw::Duohash& rhs)
 
 // Variable fundamental types; can be added to account for more types
 
+bool uvw::Variable::data_pull = true;
+
 std::map<std::type_index, std::string> uvw::Variable::type_strs = {
   {std::type_index(typeid(int)), "int"},
   {std::type_index(typeid(double)), "double"},
@@ -294,109 +296,107 @@ std::unordered_set<uvw::Processor*> uvw::Workspace::procs(
   return res;
 }
 
-std::vector<uvw::Duohash>
+std::vector<uvw::Processor*>
   uvw::Workspace::schedule(const uvw::Duohash& key)
 {
-  std::vector<uvw::Duohash> res;
+  std::vector<uvw::Processor*> res;
   if (!has(key))
   {
     return res;
   }
 
-  std::queue<uvw::Processor*> queue_proc;
+  std::queue<uvw::Processor*> proc_queue;
   uvw::Processor* proc = vars_[key]->proc();
   if (!proc)
   {
     std::cout << "Warning: null proc found for " << key << std::endl;
     return res;
   }
-  queue_proc.push(proc);
+  proc_queue.push(proc);
 
-  std::stack<uvw::Duohash> stack_vkey;
-  while (queue_proc.size())
+  std::stack<uvw::Processor*> proc_stack;
+  proc_stack.push(proc);
+
+  std::stack<uvw::Duohash> stack_keys;
+  while (proc_queue.size())
   {
-    proc = queue_proc.front();
-    queue_proc.pop();
+    proc = proc_queue.front();
+    proc_queue.pop();
 
-    for (const auto& vk : proc->var_keys())
+    for (const auto& var_key : proc->var_keys())
     {
-      if (!has(vk))
+      if (!has(var_key))
       {
         continue;
       }
-      Variable* var = vars_[vk];
+      uvw::Variable* var = vars_[var_key];
 
       if (has(var->src()))
       {
-        Variable* src = vars_[var->src()];
+        uvw::Variable* src = vars_[var->src()];
         uvw::Processor* src_proc = src->proc();
         if (src_proc)
         {
-          queue_proc.push(src_proc);
-          stack_vkey.push(vk);
+          proc_queue.push(src_proc);
+          proc_stack.push(src_proc);
         }
       }
     }
   }
 
-  while (stack_vkey.size())
+  std::unordered_set<void*> visited_procs;
+
+  while (proc_stack.size())
   {
-    res.push_back(stack_vkey.top());
-    stack_vkey.pop();
+    proc = proc_stack.top();
+    if (visited_procs.find(proc) == visited_procs.end())
+    {
+      res.push_back(proc_stack.top());
+      visited_procs.insert(proc);
+    }
+    proc_stack.pop();
   }
   return res;
 }
 
 bool uvw::Workspace::execute(
-  const std::vector<uvw::Duohash>& seq,
+  const std::vector<uvw::Processor*>& seq,
   bool preprocess
 )
 {
-  std::unordered_set<void*> visited;
-
-  uvw::Variable* var = nullptr;
-  for (const auto& key : seq)
+  for (uvw::Processor* proc_ptr : seq)
   {
     /* NOTE: a seq can only be considered valid if proc linkage 
       remains unchanged; some form of revoke mechanism is needed
       if we want to guarantee the validity of a seq */
-
-    var = vars_[key];
-    auto* proc = vars_[var->src()]->proc();
-    if (visited.find(proc) == visited.end())
+    if (!exists_(proc_ptr))
     {
-      if (preprocess)
+      return false;
+    }
+
+    if (uvw::Variable::data_pull)
+    {
+      for (auto& var_key : proc_ptr->var_keys_)
       {
-        if (!proc->preprocess())
+        uvw::Variable* v_ = vars_[var_key];
+        if (has(v_->src()))
         {
-          return false;
+          v_->pull();
         }
       }
+    }
 
-      if (!proc->process())
+    if (preprocess)
+    {
+      if (!proc_ptr->preprocess())
       {
         return false;
       }
-
-      visited.insert(proc);
     }
-    // var is ready to pull
-    var->pull();
-  }
 
-  if (var && exists_(var->proc()))
-  {
-    auto* proc = var->proc();
-    if (visited.find(proc) == visited.end())
+    if (!proc_ptr->process())
     {
-      if (preprocess)
-      {
-        if (!proc->preprocess())
-        {
-          return false;
-        }
-      }
-      return proc->process();
+      return false;
     }
   }
 

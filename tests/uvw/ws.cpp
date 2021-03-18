@@ -35,10 +35,21 @@ TEST_CASE("Workspace ...", "[ws]")
     REQUIRE( uvw::ws::vars().size() == 2 );
     REQUIRE( uvw::ws::links().size() == 1 );
 
+    uvw::var::data_pull = true;
     a_->set(3.1415926);
     REQUIRE( ws_.process() == true );
     REQUIRE( b_->get() == 3.1415926 );
 
+    // set data pull off, access source directly
+    uvw::var::data_pull = false;
+    a_->set(1.4142857);
+    REQUIRE( b_->get() == 1.4142857 );
+
+    // 'b_' output remains linked to 'a_', as data is not pulled
+    b_->set(1.73205);
+    REQUIRE( b_->get() == 1.4142857 );
+
+    // serialize as json
     auto data = ws_.to_json();
 
     ws_.clear();
@@ -46,6 +57,7 @@ TEST_CASE("Workspace ...", "[ws]")
     REQUIRE( uvw::ws::vars().size() == 0 );
     REQUIRE( uvw::ws::links().size() == 0 );
 
+    // deserialize from json
     ws_.from_json(data);
     REQUIRE( uvw::ws::procs().size() == 2 );
     REQUIRE( uvw::ws::vars().size() == 2 );
