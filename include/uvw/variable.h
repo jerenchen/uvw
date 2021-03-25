@@ -32,18 +32,25 @@ namespace uvw
 
     enum Dimension
     {
-        DYN = -1,   // Dynamic size
-        NAA = 0,    // Not an array
-        SCALAR = 1, // 1-D vectors
-        VECTOR = 3, // 3-D vectors
-        MATRIX = 16 // Array of matrices
+        DIM_DYN = -1,   // Dynamic size
+        DIM_NAA = 0,    // Not an array
+        DIM_SCALAR = 1, // 1-D vectors
+        DIM_VECTOR = 3, // 3-D vectors
+        DIM_MATRIX = 16 // Array of 4x4 matrices
+    };
+
+    enum Permission
+    {
+      PER_HIDDEN = 0,
+      PER_READABLE,
+      PER_WRITABLE
     };
 
     enum Parameter
     {
-      NONPARAM = 0,
-      OUTPUT,
-      INPUT
+      PAR_NONPARAM = 0,
+      PAR_OUTPUT,
+      PAR_INPUT
     };
 
     std::unordered_map<std::string, int> properties;
@@ -54,9 +61,9 @@ namespace uvw
     {
       data_ptr_ = data_src_ = nullptr;
       properties = {
-        {"parameter", NONPARAM},
-        {"dimension", NAA},
-        {"exposure", 1}
+        {"parameter", PAR_NONPARAM},
+        {"dimension", DIM_NAA},
+        {"permission", PER_WRITABLE}
       };
     }
 

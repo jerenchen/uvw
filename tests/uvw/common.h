@@ -11,7 +11,7 @@ struct Multiply: public Processor
 
   bool initialize() override
   {
-    x_.properties["parameter"] = Variable::INPUT;
+    x_.properties["parameter"] = Variable::PAR_INPUT;
     y_.values["min"] = -20.25;
     y_.values["max"] = 25.5;
     return (
