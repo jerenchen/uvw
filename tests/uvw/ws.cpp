@@ -71,4 +71,9 @@ TEST_CASE("Workspace ...", "[ws]")
     c_->set(2.71828);
     REQUIRE( ws_.process() == true );
     REQUIRE( d_->get() == 2.71828 );
+
+    // cannot clear proc lib if procs exist
+    REQUIRE( uvw::ws::clear_proc_lib() == false );
+    ws_.clear();
+    REQUIRE( uvw::ws::clear_proc_lib() == true );
 }
