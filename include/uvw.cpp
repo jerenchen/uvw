@@ -210,9 +210,20 @@ void uvw::Workspace::clear()
   }
 }
 
+bool uvw::Workspace::clear_proc_lib()
+{
+  // do not clear if residual proc instances exist.
+  if (procs_.size())
+  {
+    return false;
+  }
+  lib_.clear();
+  return true;
+}
+
 uvw::Processor* uvw::Workspace::new_proc(const std::string& proc_type)
 {
-  uvw::Processor* proc_ptr = uvw::Workspace::create(proc_type);
+  uvw::Processor* proc_ptr = uvw::Workspace::create_proc(proc_type);
   if (proc_ptr)
   {
     proc_ptrs_.push_back(proc_ptr);
@@ -242,7 +253,7 @@ bool uvw::Workspace::has_var(const uvw::Duohash& key)
   return (procs_by_keys_.find(key) != procs_by_keys_.end());
 }
 
-uvw::Processor* uvw::Workspace::create(const std::string& proc_type)
+uvw::Processor* uvw::Workspace::create_proc(const std::string& proc_type)
 {
   if (uvw::Workspace::lib_.find(proc_type) != uvw::Workspace::lib_.end())
   {

@@ -147,11 +147,12 @@ namespace uvw
 
     public:
 
+    static bool clear_proc_lib();
     static bool reg_proc(
       const std::string& proc_type,
       std::function<Processor*()> proc_func
     );
-    static Processor* create(const std::string& proc_type);
+    static Processor* create_proc(const std::string& proc_type);
   };
 
   using ws = Workspace;
