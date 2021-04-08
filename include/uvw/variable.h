@@ -100,7 +100,7 @@ namespace uvw
     virtual const std::type_index type_index() = 0;
 
     virtual json to_json();
-    virtual bool from_json(json& data);
+    virtual bool from_json(const json& data);
 
     const std::string type_str();
     static std::map<std::type_index, std::string> type_strs;
@@ -152,7 +152,7 @@ namespace uvw
       return data;
     }
 
-    bool from_json(json& data) override
+    bool from_json(const json& data) override
     {
       if (std::is_fundamental<T>() &&
         data.find("values") != data.end())
