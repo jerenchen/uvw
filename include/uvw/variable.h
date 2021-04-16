@@ -28,15 +28,17 @@ namespace uvw
 
     public:
 
+    bool enabled;
+
     static bool data_pull;
 
     enum Dimension
     {
-        DIM_DYN = -1,   // Dynamic size
-        DIM_NAA = 0,    // Not an array
-        DIM_SCALAR = 1, // 1-D vectors
-        DIM_VECTOR = 3, // 3-D vectors
-        DIM_MATRIX = 16 // Array of 4x4 matrices
+      DIM_DYN = -1,   // Dynamic size
+      DIM_NAA = 0,    // Not an array
+      DIM_SCALAR = 1, // 1-D vectors
+      DIM_VECTOR = 3, // 3-D vectors
+      DIM_MATRIX = 16 // Array of 4x4 matrices
     };
 
     enum Permission
@@ -59,6 +61,7 @@ namespace uvw
 
     void init()
     {
+      enabled = true;
       data_ptr_ = data_src_ = nullptr;
       properties = {
         {"parameter", PAR_NONPARAM},
@@ -69,6 +72,7 @@ namespace uvw
 
     void copy(const Variable& v)
     {
+      enabled = v.enabled;
       data_ptr_ = v.data_ptr_;
       data_src_ = v.data_src_;
       key_ = v.key_;

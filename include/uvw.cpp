@@ -405,7 +405,7 @@ bool uvw::Workspace::execute(
       }
     }
 
-    if (!proc_ptr->process())
+    if (!proc_ptr->process(preprocess))
     {
       return false;
     }
@@ -606,6 +606,7 @@ bool uvw::Processor::from_json(const json& data)
 json uvw::Variable::to_json()
 {
   json data;
+  data["enabled"] = enabled;
   data["label"] = label();
   data["type"] = type_str();
   for (auto& itr : properties)
@@ -620,6 +621,11 @@ bool uvw::Variable::from_json(const json& data)
   for (auto& itr : data["properties"].items())
   {
     properties[itr.key()] = itr.value().get<int>();
+  }
+
+  if (data.find("enabled") != data.end())
+  {
+    enabled = data["enabled"];
   }
   return true;
 }

@@ -18,22 +18,12 @@ TEST_CASE("Variables...", "[var]")
         REQUIRE( v == 7 );
     }
 
-    SECTION("Linkage")
+    SECTION("JSON Serialize")
     {
-        struct Proc : uvw::Processor
-        {
-            uvw::Var<double> r_;
-            uvw::Var<int> s_;
-            uvw::Var<int> t_;
-
-            bool initialize() override
-            {
-                return (
-                    reg_var<double>("r", r_) &&
-                    reg_var<int>("s", s_) &&
-                    reg_var<int>("t", t_)
-                );
-            }
-        };
+        v_.enabled = false;
+        auto data = v_.to_json();
+        uvw::Var<double> u_;
+        u_.from_json(data);
+        REQUIRE( u_.enabled == false );
     }
 }

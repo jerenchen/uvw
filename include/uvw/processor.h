@@ -30,7 +30,7 @@ namespace uvw
 
     virtual bool initialize() {return true;}
     virtual bool preprocess() {return true;}
-    virtual bool process() {return true;}
+    virtual bool process(bool preprocess=false) {return true;}
 
     template<typename T>
     bool reg_var(const std::string& label, Var<T>& var);
