@@ -159,20 +159,25 @@ namespace uvw
       {
         data["values"][itr.first] = itr.second;
       }
+      data["value"] = get();
       return data;
     }
 
     bool from_json(const json& data) override
     {
-      if (std::is_fundamental<T>() &&
-        data.find("values") != data.end())
+      if (data.find("values") != data.end())
       {
         for (auto& itr : data["values"].items())
         {
           values[itr.key()] = itr.value().get<T>();
         }
       }
-      return Variable::from_json(data);;
+
+      if (data.find("value") != data.end())
+      {
+        value_ = data["value"].get<T>();
+      }
+      return Variable::from_json(data);
     }
 
     // type-specific members

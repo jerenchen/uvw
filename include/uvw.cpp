@@ -23,6 +23,7 @@ bool uvw::Variable::data_pull = true;
 
 std::map<std::type_index, std::string> uvw::Variable::type_strs = {
   {std::type_index(typeid(int)), "int"},
+  {std::type_index(typeid(bool)), "bool"},
   {std::type_index(typeid(double)), "double"},
   {std::type_index(typeid(std::string)), "string"}
 };
@@ -539,21 +540,24 @@ bool uvw::Workspace::from_json(const json& data)
 {
   std::unordered_map<unsigned int, void*> procs_by_indices;
 
-  for (auto& data_itr : data["procs"])
+  if (data.find("procs") != data.end())
   {
-    auto proc_type = data_itr["type"].get<std::string>();
-    auto* proc_ptr = new_proc(proc_type);
-    if (!proc_ptr)
+    for (auto& data_itr : data["procs"])
     {
-      std::cerr << "Cannot create proc type '" <<
-        proc_type << "'!" << std::endl;
-      return false;
-    }
+      auto proc_type = data_itr["type"].get<std::string>();
+      auto* proc_ptr = new_proc(proc_type);
+      if (!proc_ptr)
+      {
+        std::cerr << "Cannot create proc type '" <<
+          proc_type << "'!" << std::endl;
+        return false;
+      }
 
-    procs_by_indices[procs_by_indices.size()] = proc_ptr;
-    if (!proc_ptr->from_json(data_itr))
-    {
-      return false;
+      procs_by_indices[procs_by_indices.size()] = proc_ptr;
+      if (!proc_ptr->from_json(data_itr))
+      {
+        return false;
+      }
     }
   }
 
@@ -571,6 +575,9 @@ bool uvw::Workspace::from_json(const json& data)
       if (!has_index_(data_itr["var"]["index"].get<int>()) ||
             !has_index_(data_itr["src"]["index"].get<int>()))
       {
+        std::cout << "Cannot find proc index " <<
+          data_itr["var"]["index"].get<int>() << " or " <<
+          data_itr["src"]["index"].get<int>() << "! Skipping..." << std::endl;
         continue;
       }
       auto* p = procs_by_indices[data_itr["var"]["index"].get<int>()];
@@ -589,13 +596,21 @@ bool uvw::Workspace::from_json(const json& data)
       has_index_(data["in"]["index"].get<int>()))
   {
     auto* p = procs_by_indices[data["in"]["index"].get<int>()];
-    set_input(uvw::Duohash(p, data["in"]["label"].get<std::string>()));
+    auto k_in = uvw::Duohash(p, data["in"]["label"].get<std::string>());
+    if (!set_input(k_in))
+    {
+      std::cerr << "Cannot set input " << k_in << "!" << std::endl;
+    }
   }
   if (data.find("out") != data.end() &&
       has_index_(data["out"]["index"].get<int>()))
   {
     auto* q = procs_by_indices[data["out"]["index"].get<int>()];
-    set_output(uvw::Duohash(q, data["out"]["label"].get<std::string>()));
+    auto k_out = uvw::Duohash(q, data["out"]["label"].get<std::string>());
+    if (!set_output(k_out))
+    {
+      std::cerr << "Cannot set output " << k_out << "!" << std::endl;
+    }
   }
   return true;
 }
@@ -638,7 +653,7 @@ bool uvw::Processor::from_json(const json& data)
 json uvw::Variable::to_json()
 {
   json data;
-  data["enabled"] = enabled;
+  data["enabled"] = (bool)enabled;
   data["label"] = label();
   data["type"] = type_str();
   for (auto& itr : properties)
@@ -650,14 +665,16 @@ json uvw::Variable::to_json()
 
 bool uvw::Variable::from_json(const json& data)
 {
-  for (auto& itr : data["properties"].items())
+  if (data.find("properties") != data.end())
   {
-    properties[itr.key()] = itr.value().get<int>();
+    for (auto& itr : data["properties"].items())
+    {
+      properties[itr.key()] = itr.value().get<int>();
+    }
   }
-
   if (data.find("enabled") != data.end())
   {
-    enabled = data["enabled"];
+    enabled = data["enabled"].get<bool>();
   }
   return true;
 }
