@@ -5,6 +5,11 @@
 
 TEST_CASE("Variables...", "[var]")
 {
+    REQUIRE( uvw::ws::procs().size() == 0 );
+    REQUIRE( uvw::ws::links().size() == 0 );
+    REQUIRE( uvw::ws::vars().size() == 0 );
+    REQUIRE( uvw::ws::workspaces().size() == 0 );
+
     uvw::Var<double> v_;
     REQUIRE( v_.is_of_type<int>() == false );
     REQUIRE( v_.is_of_type<double>() == true );

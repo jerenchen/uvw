@@ -3,6 +3,8 @@
 
 #include "duohash.h"
 
+#include <unordered_set>
+#include <unordered_map>
 #include <typeindex>
 
 #include <json.hpp>
@@ -61,6 +63,7 @@ namespace uvw
 
     void init()
     {
+      incoming_.clear();
       enabled = true;
       data_ptr_ = data_src_ = nullptr;
       properties = {
@@ -72,6 +75,7 @@ namespace uvw
 
     void copy(const Variable& v)
     {
+      incoming_ = v.incoming_;
       enabled = v.enabled;
       data_ptr_ = v.data_ptr_;
       data_src_ = v.data_src_;
@@ -110,6 +114,8 @@ namespace uvw
     static std::map<std::type_index, std::string> type_strs;
 
     protected:
+    void propagate(void* data_src);
+    std::unordered_set<Duohash> incoming_;
     template<class T> static T null_;
   };
 

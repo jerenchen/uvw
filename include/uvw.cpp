@@ -35,10 +35,39 @@ const std::string uvw::Variable::type_str()
 
 // Variable impl.
 
+#include <queue>
+
+void uvw::Variable::propagate(void* data_src)
+{
+  std::queue<uvw::Duohash> key_queue;
+  key_queue.push(key_);
+  while (key_queue.size())
+  {
+    auto* v_ = uvw::Workspace::get(key_queue.front());
+    key_queue.pop();
+    if (v_)
+    {
+      v_->data_src_ = data_src;
+      for (auto k : v_->incoming_)
+      {
+        key_queue.push(k);
+      }
+    }
+  }
+}
+
 bool uvw::Variable::unlink()
 {
+  if (uvw::Workspace::has(src_))
+  {
+    uvw::Workspace::get(src_)->incoming_.erase(key_);
+  }
+
   src_.nullify();
+  // ensure to point downstream to self
+  propagate(data_ptr_);
   data_src_ = nullptr;
+
   return (uvw::Workspace::links_.erase(key_) > 0);
 }
 
@@ -51,7 +80,11 @@ bool uvw::Variable::link(uvw::Variable* src)
   }
   // hook up key & src data ptr
   src_ = uvw::Duohash(src->key());
-  data_src_ = src->data_ptr_;
+
+  // populate downstream/incoming links
+  propagate(src->data_ptr_);
+
+  src->incoming_.insert(key_);
   uvw::Workspace::links_[key_] = src_;
   return true;
 }
@@ -96,7 +129,6 @@ uvw::Variable* uvw::Processor::get(const std::string& label)
 
 // Workspace impl.
 
-#include <queue>
 #include <stack>
 #include <vector>
 
