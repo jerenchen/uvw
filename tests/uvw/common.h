@@ -26,7 +26,7 @@ struct Multiply: public Processor
     return true;
   }
 
-  bool process() override
+  bool process(bool preprocess) override
   {
     auto& x = x_();
     auto& y = y_();
@@ -59,7 +59,7 @@ struct PreAdd: public Processor
     return true;
   }
 
-  bool process() override
+  bool process(bool preprocess) override
   {
     c_() = d_;
     return true;

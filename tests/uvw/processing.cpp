@@ -8,6 +8,12 @@ using namespace uvw;
 
 TEST_CASE("Processing...", "[Processing]")
 {
+  // ensure ws is empty
+  REQUIRE( uvw::ws::procs().size() == 0 );
+  REQUIRE( uvw::ws::vars().size() == 0 );
+  REQUIRE( uvw::ws::links().size() == 0 );
+  REQUIRE( uvw::ws::workspaces().size() == 0 );
+
   // proc registration
   uvw::ws::reg_proc("PreAdd", ([](){return new PreAdd();}));
   uvw::ws::reg_proc("Multiply", ([](){return new Multiply();}));
@@ -74,6 +80,7 @@ TEST_CASE("Processing...", "[Processing]")
   REQUIRE( uvw::ws::procs().size() == 0 );
   REQUIRE( uvw::ws::links().size() == 0 );
   REQUIRE( uvw::ws::vars().size() == 0 );
+  REQUIRE( uvw::ws::workspaces().size() == 1 );
 
   // deserialization
   mws.from_json(json_stream);

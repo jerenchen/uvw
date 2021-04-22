@@ -5,6 +5,11 @@
 
 TEST_CASE("Duohash...", "[duo]")
 {
+    REQUIRE( uvw::ws::procs().size() == 0 );
+    REQUIRE( uvw::ws::links().size() == 0 );
+    REQUIRE( uvw::ws::vars().size() == 0 );
+    REQUIRE( uvw::ws::workspaces().size() == 0 );
+
     uvw::Processor p_, q_;
 
     SECTION("Assignment")
