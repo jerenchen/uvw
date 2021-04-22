@@ -12,7 +12,10 @@ struct A : uvw::Processor
 struct B : uvw::Processor
 {
     uvw::Var<double> b_;
-    bool initialize() override {return reg_var<double>("b", b_);}
+    uvw::Var<std::string> s_;
+    bool initialize() override {
+        return reg_var<double>("b", b_) && reg_var<std::string>("s", s_);
+    }
 };
 
 struct Compound
@@ -63,7 +66,7 @@ TEST_CASE("Workspace ...", "[ws]")
     SECTION("Process")
     {
         REQUIRE( uvw::ws::procs().size() == 2 );
-        REQUIRE( uvw::ws::vars().size() == 2 );
+        REQUIRE( uvw::ws::vars().size() == 3 );
         REQUIRE( uvw::ws::links().size() == 1 );
         REQUIRE( uvw::ws::workspaces().size() == 1 );
 
@@ -95,7 +98,7 @@ TEST_CASE("Workspace ...", "[ws]")
 
         ws_.from_json(data);
         REQUIRE( uvw::ws::procs().size() == 2 );
-        REQUIRE( uvw::ws::vars().size() == 2 );
+        REQUIRE( uvw::ws::vars().size() == 3 );
         REQUIRE( uvw::ws::links().size() == 1 );
         REQUIRE( uvw::ws::workspaces().size() == 1 );
 
@@ -115,7 +118,9 @@ TEST_CASE("Workspace ...", "[ws]")
         std::string s = "{\
             \"procs\":[\
                 {\"type\":\"A\"},\
-                {\"type\":\"B\"}\
+                {\"type\":\"B\", \"vars\":[\
+                    {\"label\":\"s\",\"value\":\"bnode\",\"enabled\":false}\
+                ]}\
             ],\
             \"links\":[\
                 {\
@@ -127,7 +132,7 @@ TEST_CASE("Workspace ...", "[ws]")
         }";
         REQUIRE( ws_.from_str(s) == true );
         REQUIRE( uvw::ws::procs().size() == 2 );
-        REQUIRE( uvw::ws::vars().size() == 2 );
+        REQUIRE( uvw::ws::vars().size() == 3 );
         REQUIRE( uvw::ws::links().size() == 1 );
         REQUIRE( uvw::ws::workspaces().size() == 1 );
 
@@ -136,9 +141,12 @@ TEST_CASE("Workspace ...", "[ws]")
         auto* Y_ = ws_.proc_ptrs()[1];
         auto* u_ = (uvw::Var<double>*)X_->get("a");
         auto* v_ = (uvw::Var<double>*)Y_->get("b");
+        auto* w_ = (uvw::Var<std::string>*)Y_->get("s");
         u_->set(1.73205);
         REQUIRE( ws_.process() == true );
         REQUIRE( v_->get() == 1.73205 );
+        REQUIRE( w_->get() == "bnode" );
+        REQUIRE( w_->enabled == false );
     }
 
     // compound vars
@@ -152,7 +160,7 @@ TEST_CASE("Workspace ...", "[ws]")
         REQUIRE( ws_.set_output(b_->key()) == true ); // re-schedule
 
         REQUIRE( uvw::ws::procs().size() == 3 );
-        REQUIRE( uvw::ws::vars().size() == 4 );
+        REQUIRE( uvw::ws::vars().size() == 5 );
         REQUIRE( uvw::ws::links().size() == 2 );
         REQUIRE( uvw::ws::workspaces().size() == 1 );
 
