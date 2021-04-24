@@ -149,12 +149,17 @@ namespace uvw
       }
     }
 
-    // json values
+    // json enums/values type-specific serialize
+    std::unordered_map<std::string, T> enums;
     std::unordered_map<std::string, T> values;
 
     json to_json() override
     {
       json data = Variable::to_json();
+      for (auto& itr : enums)
+      {
+        data["enums"][itr.first] = itr.second;
+      }
       for (auto& itr : values)
       {
         data["values"][itr.first] = itr.second;
@@ -165,6 +170,13 @@ namespace uvw
 
     bool from_json(const json& data) override
     {
+      if (data.find("enums") != data.end())
+      {
+        for (auto& itr : data["enums"].items())
+        {
+          enums[itr.key()] = itr.value().get<T>();
+        }
+      }
       if (data.find("values") != data.end())
       {
         for (auto& itr : data["values"].items())
@@ -172,7 +184,6 @@ namespace uvw
           values[itr.key()] = itr.value().get<T>();
         }
       }
-
       if (data.find("value") != data.end())
       {
         value_ = data["value"].get<T>();
@@ -189,6 +200,27 @@ namespace uvw
     T& operator()() {return ref();}
     T get() {return ref();}
     void set(const T& val) {value_ = val;}
+    const T& operator[](const std::string& key)
+    {
+      return (
+        enums.find(key) != enums.end()?
+          enums[key] : (
+            values.find("default") != values.end()?
+              values["default"] : Variable::null_<T>
+          )
+      );
+    }
+    std::string get_enum_key(const T& value)
+    {
+      for (auto& itr : enums)
+      {
+        if (itr.second == value)
+        {
+          return itr.first;
+        }
+      }
+      return std::string();
+    }
   };
 
   // impl.

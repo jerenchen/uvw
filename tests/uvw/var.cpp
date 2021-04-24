@@ -11,8 +11,11 @@ TEST_CASE("Variables...", "[var]")
     REQUIRE( uvw::ws::workspaces().size() == 0 );
 
     uvw::Var<double> v_;
-    REQUIRE( v_.is_of_type<int>() == false );
-    REQUIRE( v_.is_of_type<double>() == true );
+    SECTION("Data Type")
+    {
+        REQUIRE( v_.is_of_type<int>() == false );
+        REQUIRE( v_.is_of_type<double>() == true );
+    }
 
     SECTION("Reference")
     {
@@ -26,9 +29,19 @@ TEST_CASE("Variables...", "[var]")
     SECTION("JSON Serialize")
     {
         v_.enabled = false;
+        v_.enums = {
+            {"Item1", 0.333},
+            {"Item2", 0.667}
+        };
+        v_.values["default"] = -0.25;
         auto data = v_.to_json();
+
         uvw::Var<double> u_;
         u_.from_json(data);
         REQUIRE( u_.enabled == false );
+        REQUIRE( u_["Item0"] == -0.25 );
+        REQUIRE( u_["Item2"] == 0.667 );
+        REQUIRE( u_.get_enum_key(0.333) == "Item1" );
+        REQUIRE( u_.get_enum_key(-0.25).empty() == true );
     }
 }
