@@ -22,11 +22,7 @@ struct Compound
 {
     uvw::Var<double> comp_;
 };
-
-template<> bool uvw::Var<Compound>::from_json(const json& data)
-    {return uvw::Variable::from_json(data);}
-template<> json uvw::Var<Compound>::to_json()
-    {return uvw::Variable::to_json();}
+UVW_VAR_SPECIALIZE_DEFAULT(Compound)
 
 struct C : uvw::Processor
 {

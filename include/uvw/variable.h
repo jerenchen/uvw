@@ -30,33 +30,9 @@ namespace uvw
 
     public:
 
-    bool enabled;
-
     static bool data_pull;
 
-    enum Dimension
-    {
-      DIM_DYN = -1,   // Dynamic size
-      DIM_NAA = 0,    // Not an array
-      DIM_SCALAR = 1, // 1-D vectors
-      DIM_VECTOR = 3, // 3-D vectors
-      DIM_MATRIX = 16 // Array of 4x4 matrices
-    };
-
-    enum Permission
-    {
-      PER_HIDDEN = 0,
-      PER_READABLE,
-      PER_WRITABLE
-    };
-
-    enum Parameter
-    {
-      PAR_NONPARAM = 0,
-      PAR_OUTPUT,
-      PAR_INPUT
-    };
-
+    bool enabled;
     std::unordered_map<std::string, int> properties;
 
     protected:
@@ -66,11 +42,7 @@ namespace uvw
       incoming_.clear();
       enabled = true;
       data_ptr_ = data_src_ = nullptr;
-      properties = {
-        {"parameter", PAR_NONPARAM},
-        {"dimension", DIM_NAA},
-        {"permission", PER_WRITABLE}
-      };
+      properties.clear();
     }
 
     void copy(const Variable& v)
@@ -87,10 +59,9 @@ namespace uvw
     Variable(const Duohash& key): key_(key) {init();}
 
     public:
+
     Variable() {init();}
     virtual ~Variable() {init();}
-    Variable(const Variable& v) {*this = v;}
-    Variable& operator=(const Variable& v) {copy(v); return *this;}
 
     const Duohash& key() {return key_;}
     const std::string label() {return key_.var_str;}
@@ -112,6 +83,9 @@ namespace uvw
 
     const std::string type_str();
     static std::map<std::type_index, std::string> type_strs;
+
+    virtual bool set_enum(const std::string& key) = 0;
+    virtual const std::string default_enum() {return "";}
 
     protected:
     void propagate(void* data_src);
@@ -149,16 +123,82 @@ namespace uvw
       }
     }
 
-    // json enums/values type-specific serialize
-    std::unordered_map<std::string, T> enums;
+    // type-specific members
     std::unordered_map<std::string, T> values;
+
+    T& ref()
+    {
+      return (data_pull || data_src_ == nullptr)?
+        value_ : *((T*)data_src_);
+    }
+    T& operator()() {return ref();}
+    T get() {return ref();}
+    void set(const T& val) {value_ = val;}
+    const T& default_value()
+    {
+      return (values.find("default") != values.end()?
+                values["default"] : Variable::null_<T>);
+    }
+
+    // enums
+    std::vector<std::pair<std::string, T> > enums;
+
+    const T& operator[](const std::string& key)
+    {
+      for (auto& itr : enums)
+      {
+        if (itr.first == key)
+        {
+          return itr.second;
+        }
+      }
+      return default_value();
+    }
+
+    bool set_enum(const std::string& key) override
+    {
+      for (auto& itr : enums)
+      {
+        if (itr.first == key)
+        {
+          value_ = itr.second;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    const std::string default_enum() override
+    {
+      auto& dv = default_value();
+      if (!is_null(dv))
+      {
+        for (auto& itr : enums)
+        {
+          if (itr.second == dv)
+          {
+            return itr.first;
+          }
+        }
+      }
+      return enums.size()? enums[0].first : std::string();
+    }
+
+    // json serialize
 
     json to_json() override
     {
       json data = Variable::to_json();
-      for (auto& itr : enums)
+      if (enums.size())
       {
-        data["enums"][itr.first] = itr.second;
+        data["enums"] = json::array();
+        for (auto& itr : enums)
+        {
+          json elem;
+          elem["key"] = itr.first;
+          elem["value"] = itr.second;
+          data["enums"].push_back(elem);
+        }
       }
       for (auto& itr : values)
       {
@@ -170,13 +210,15 @@ namespace uvw
 
     bool from_json(const json& data) override
     {
+      enums.clear();
       if (data.find("enums") != data.end())
       {
-        for (auto& itr : data["enums"].items())
+        for (auto& itr : data["enums"])
         {
-          enums[itr.key()] = itr.value().get<T>();
+          enums.push_back({itr["key"], itr["value"].get<T>()});
         }
       }
+      values.clear();
       if (data.find("values") != data.end())
       {
         for (auto& itr : data["values"].items())
@@ -190,38 +232,16 @@ namespace uvw
       }
       return Variable::from_json(data);
     }
-
-    // type-specific members
-    T& ref()
-    {
-      return (data_pull || data_src_ == nullptr)?
-        value_ : *((T*)data_src_);
-    }
-    T& operator()() {return ref();}
-    T get() {return ref();}
-    void set(const T& val) {value_ = val;}
-    const T& operator[](const std::string& key)
-    {
-      return (
-        enums.find(key) != enums.end()?
-          enums[key] : (
-            values.find("default") != values.end()?
-              values["default"] : Variable::null_<T>
-          )
-      );
-    }
-    std::string get_enum_key(const T& value)
-    {
-      for (auto& itr : enums)
-      {
-        if (itr.second == value)
-        {
-          return itr.first;
-        }
-      }
-      return std::string();
-    }
   };
+
+  // macro to define specialized overrides without values/enums
+  #define UVW_VAR_SPECIALIZE_DEFAULT(x) \
+    template<> const std::string uvw::Var<x>::default_enum()\
+        {return Variable::default_enum();}\
+    template<> bool uvw::Var<x>::from_json(const json& data)\
+        {return Variable::from_json(data);}\
+    template<> json uvw::Var<x>::to_json()\
+        {return Variable::to_json();}
 
   // impl.
 
