@@ -665,6 +665,7 @@ json uvw::Variable::to_json()
 
 bool uvw::Variable::from_json(const json& data)
 {
+  properties.clear();
   if (data.find("properties") != data.end())
   {
     for (auto& itr : data["properties"].items())
