@@ -56,5 +56,7 @@ TEST_CASE("Variables...", "[var]")
         REQUIRE( u_.default_enum() == "Item1" );
         u_.values["default"] = 0.667;
         REQUIRE( u_.default_enum() == "Item2" );
+        auto keys = std::vector<std::string>{"Item1", "Item2"};
+        REQUIRE( u_.enum_keys() == keys );
     }
 }

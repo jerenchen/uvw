@@ -86,6 +86,7 @@ namespace uvw
 
     virtual bool set_enum(const std::string& key) = 0;
     virtual const std::string default_enum() {return "";}
+    virtual const std::vector<std::string> enum_keys() {return {};}
 
     protected:
     void propagate(void* data_src);
@@ -182,6 +183,16 @@ namespace uvw
         }
       }
       return enums.size()? enums[0].first : std::string();
+    }
+
+    const std::vector<std::string> enum_keys() override
+    {
+      std::vector<std::string> keys;
+      for (auto& itr : enums)
+      {
+        keys.push_back(itr.first);
+      }
+      return keys;
     }
 
     // json serialize
