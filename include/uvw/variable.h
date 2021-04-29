@@ -7,8 +7,8 @@
 #include <unordered_map>
 #include <typeindex>
 
-#include <json.hpp>
-using json = nlohmann::json;
+#include <picojson.h>
+using json = picojson::value;
 
 
 namespace uvw
@@ -79,7 +79,7 @@ namespace uvw
     virtual const std::type_index type_index() = 0;
 
     virtual json to_json();
-    virtual bool from_json(const json& data);
+    virtual bool from_json(json& data);
 
     const std::string type_str();
     static std::map<std::type_index, std::string> type_strs;
@@ -200,47 +200,70 @@ namespace uvw
     json to_json() override
     {
       json data = Variable::to_json();
+      auto& data_obj = data.get<json::object>();
+
       if (enums.size())
       {
-        data["enums"] = json::array();
+        json::array enum_array;
         for (auto& itr : enums)
         {
-          json elem;
-          elem["key"] = itr.first;
-          elem["value"] = itr.second;
-          data["enums"].push_back(elem);
+          json::object elem;
+          elem["key"] = json(itr.first);
+          elem["value"] = json(itr.second);
+          enum_array.push_back(json(elem));
         }
+        data_obj["enums"] = json(enum_array);
       }
-      for (auto& itr : values)
+
+      if (values.size())
       {
-        data["values"][itr.first] = itr.second;
+        json::object value_obj;
+        for (auto& itr : values)
+        {
+          value_obj[itr.first] = json(itr.second);
+        }
+        data_obj["values"] = json(value_obj);
       }
-      data["value"] = get();
+
+      data_obj["value"] = json(get());
+
       return data;
     }
 
-    bool from_json(const json& data) override
+    bool from_json(json& data) override
     {
+      auto& data_obj = data.get<json::object>();
+
       enums.clear();
-      if (data.find("enums") != data.end())
+      if (data_obj.find("enums") != data_obj.end() &&
+            data_obj["enums"].is<json::array>())
       {
-        for (auto& itr : data["enums"])
+        for (auto& itr : data_obj["enums"].get<json::array>())
         {
-          enums.push_back({itr["key"], itr["value"].get<T>()});
+          auto enum_obj = itr.get<json::object>();
+          enums.push_back(
+            {
+              enum_obj["key"].get<std::string>(),
+              enum_obj["value"].get<T>()
+            }
+          );
         }
       }
+
       values.clear();
-      if (data.find("values") != data.end())
+      if (data_obj.find("values") != data_obj.end())
       {
-        for (auto& itr : data["values"].items())
+        for (auto& itr : data_obj["values"].get<json::object>())
         {
-          values[itr.key()] = itr.value().get<T>();
+          values[itr.first] = itr.second.get<T>();
         }
       }
-      if (data.find("value") != data.end())
+
+      if (data_obj.find("value") != data_obj.end())
       {
-        value_ = data["value"].get<T>();
+        value_ = data_obj["value"].get<T>();
       }
+
       return Variable::from_json(data);
     }
   };
@@ -249,7 +272,7 @@ namespace uvw
   #define UVW_VAR_SPECIALIZE_DEFAULT(x) \
     template<> const std::string uvw::Var<x>::default_enum()\
         {return Variable::default_enum();}\
-    template<> bool uvw::Var<x>::from_json(const json& data)\
+    template<> bool uvw::Var<x>::from_json(json& data)\
         {return Variable::from_json(data);}\
     template<> json uvw::Var<x>::to_json()\
         {return Variable::to_json();}
