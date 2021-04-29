@@ -38,16 +38,16 @@ struct C : uvw::Processor
 
 struct M : uvw::Processor
 {
-    uvw::Var<int> u;
-    uvw::Var<int> v;
-    uvw::Var<int> w;
+    uvw::Var<int64_t> u;
+    uvw::Var<int64_t> v;
+    uvw::Var<int64_t> w;
 
     bool initialize() override
     {
         return (
-            reg_var<int>("u", u) &&
-            reg_var<int>("v", v) &&
-            reg_var<int>("w", w)
+            reg_var<int64_t>("u", u) &&
+            reg_var<int64_t>("v", v) &&
+            reg_var<int64_t>("w", w)
         );
     }
 };

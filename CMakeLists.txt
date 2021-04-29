@@ -6,16 +6,19 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-file(
-  DOWNLOAD
-    https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp
-    ${CMAKE_CURRENT_BINARY_DIR}/include/json.hpp
-  TIMEOUT 60
+include(FetchContent)
+FetchContent_Declare(picojson
+  GIT_REPOSITORY https://github.com/kazuho/picojson.git
 )
+FetchContent_MakeAvailable(picojson)
+FetchContent_GetProperties(picojson
+  SOURCE_DIR PICOJSON_SRC
+)
+add_definitions(-DPICOJSON_USE_INT64)
 
 include_directories(
     include
-    ${CMAKE_CURRENT_BINARY_DIR}/include
+    ${PICOJSON_SRC}
 )
 
 set(UVW_USE_STATIC_LIBRARY OFF)

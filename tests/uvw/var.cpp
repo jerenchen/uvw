@@ -20,7 +20,7 @@ TEST_CASE("Variables...", "[var]")
     uvw::Var<double> v_;
     SECTION("Data Type")
     {
-        REQUIRE( v_.is_of_type<int>() == false );
+        REQUIRE( v_.is_of_type<int64_t>() == false );
         REQUIRE( v_.is_of_type<double>() == true );
     }
 

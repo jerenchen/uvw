@@ -108,7 +108,7 @@ namespace uvw
 
     // proc json serialization
     json to_json();
-    bool from_json(const json& data);
+    bool from_json(json& data);
     bool from_str(const std::string& str);
 
     // workspace processing

@@ -102,7 +102,7 @@ TEST_CASE("Processing...", "[Processing]")
   mws.from_json(json_stream);
 
   // verify if json input & output matches
-  REQUIRE( json_stream.dump().compare(mws.to_json().dump()) == 0 );
+  REQUIRE( json_stream.serialize().compare(mws.to_json().serialize()) == 0 );
 
   add = mws.preadd_proc();
   mult = mws.mult_proc();

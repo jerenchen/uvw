@@ -22,7 +22,7 @@ bool uvw::operator==(const uvw::Duohash& lhs, const uvw::Duohash& rhs)
 bool uvw::Variable::data_pull = true;
 
 std::map<std::type_index, std::string> uvw::Variable::type_strs = {
-  {std::type_index(typeid(int)), "int"},
+  {std::type_index(typeid(int64_t)), "int64"},
   {std::type_index(typeid(bool)), "bool"},
   {std::type_index(typeid(double)), "double"},
   {std::type_index(typeid(std::string)), "string"}
@@ -481,73 +481,94 @@ bool uvw::Workspace::process(bool preprocess)
 
 bool uvw::Workspace::from_str(const std::string& str)
 {
-  return from_json(json::parse(str));
+  json data;
+  std::string err = picojson::parse(data, str);
+  if (!err.empty())
+  {
+    std::cerr << err << std::endl;
+    return false;
+  }
+  return from_json(data);
 }
 
 json uvw::Workspace::to_json()
 {
-  json data;
   if (!proc_ptrs_.size())
   {
-    return data;
+    return json();
   }
 
-  std::unordered_map<void*, unsigned int> indices_by_procs;
-  data["procs"] = json::array();
+  json::object data_obj;
+  std::unordered_map<void*, int64_t> indices_by_procs;
+  json::array proc_list;
   for (auto* proc_ptr : proc_ptrs_)
   {
-    unsigned int index = indices_by_procs.size();
+    int64_t index = indices_by_procs.size();
     indices_by_procs[proc_ptr] = index;
 
-    data["procs"].push_back(proc_ptr->to_json());
-    data["procs"].back()["index"] = index;
+    auto proc_obj = proc_ptr->to_json().get<json::object>();
+    proc_obj["index"] = json(index);
+    proc_list.push_back(json(proc_obj));
   }
+  data_obj["procs"] = json(proc_list);
 
   auto is_indexed_ = [&indices_by_procs](void* ptr)
   {
-    return (indices_by_procs.find(ptr) !=
-        indices_by_procs.end());
+    return (indices_by_procs.find(ptr) != indices_by_procs.end());
   };
 
-  data["links"] = json::array();
+  json::array link_list;
   for (const auto& itr : links_)
   {
-    if (!is_indexed_(itr.first.raw_ptr) && !is_indexed_(itr.second.raw_ptr))
+    if (is_indexed_(itr.first.raw_ptr) || is_indexed_(itr.second.raw_ptr))
     {
-      // both end of link are not in ws scope
-      continue;
+      json::object var_obj;
+      json::object src_obj;
+      var_obj["index"] = json(indices_by_procs[itr.first.raw_ptr]);
+      var_obj["label"] = json(itr.first.var_str);
+      src_obj["index"] = json(indices_by_procs[itr.second.raw_ptr]);
+      src_obj["label"] = json(itr.second.var_str);
+      json::object link_obj;
+      link_obj["var"] = json(var_obj);
+      link_obj["src"] = json(src_obj);
+      link_list.push_back(json(link_obj));
     }
-
-    json link;
-    link["var"]["index"] = indices_by_procs[itr.first.raw_ptr];
-    link["var"]["label"] = itr.first.var_str;
-    link["src"]["index"] = indices_by_procs[itr.second.raw_ptr];
-    link["src"]["label"] = itr.second.var_str;
-    data["links"].push_back(link);
+    else
+    {
+      // neither is in the ws scope...
+    }
   }
+  data_obj["links"] = json(link_list);
 
   if (has_var(in_) && is_indexed_(in_.raw_ptr))
   {
-    data["in"]["index"] = indices_by_procs[in_.raw_ptr];
-    data["in"]["label"] = in_.var_str;
+    json::object in_obj;
+    in_obj["index"] = json(indices_by_procs[in_.raw_ptr]);
+    in_obj["label"] = json(in_.var_str);
+    data_obj["in"] = json(in_obj);
   }
   if (has_var(out_) && is_indexed_(out_.raw_ptr))
   {
-    data["out"]["index"] = indices_by_procs[out_.raw_ptr];
-    data["out"]["label"] = out_.var_str;
+    json::object out_obj;
+    out_obj["index"] = json(indices_by_procs[out_.raw_ptr]);
+    out_obj["label"] = json(out_.var_str);
+    data_obj["out"] = json(out_obj);
   }
-  return data;
+  return json(data_obj);
 }
 
-bool uvw::Workspace::from_json(const json& data)
+bool uvw::Workspace::from_json(json& data)
 {
-  std::unordered_map<unsigned int, void*> procs_by_indices;
+  auto& data_obj = data.get<json::object>();
+  std::unordered_map<int64_t, void*> procs_by_indices;
 
-  if (data.find("procs") != data.end())
+  if (data_obj.find("procs") != data_obj.end() &&
+        data_obj["procs"].is<json::array>())
   {
-    for (auto& data_itr : data["procs"])
+    for (auto& data_itr : data_obj["procs"].get<json::array>())
     {
-      auto proc_type = data_itr["type"].get<std::string>();
+      auto& proc_obj = data_itr.get<json::object>();
+      auto proc_type = proc_obj["type"].get<std::string>();
       auto* proc_ptr = new_proc(proc_type);
       if (!proc_ptr)
       {
@@ -564,29 +585,33 @@ bool uvw::Workspace::from_json(const json& data)
     }
   }
 
-  auto has_index_ = [&procs_by_indices](int index)
+  auto has_index_ = [&procs_by_indices](int64_t index)
   {
     return (procs_by_indices.find(index) !=
       procs_by_indices.end());
   };
 
   // intra-links amongst ws procs/vars
-  if (data.find("links") != data.end())
+  if (data_obj.find("links") != data_obj.end() &&
+        data_obj["links"].is<json::array>())
   {
-    for (auto& data_itr : data["links"])
+    for (auto& data_itr : data_obj["links"].get<json::array>())
     {
-      if (!has_index_(data_itr["var"]["index"].get<int>()) ||
-            !has_index_(data_itr["src"]["index"].get<int>()))
+      auto& link_obj = data_itr.get<json::object>();
+      auto& var_obj = link_obj["var"].get<json::object>();
+      auto& src_obj = link_obj["src"].get<json::object>();
+      auto var_index = var_obj["index"].get<int64_t>();
+      auto src_index = src_obj["index"].get<int64_t>();
+      if (!has_index_(var_index) || !has_index_(src_index))
       {
-        std::cout << "Cannot find proc index " <<
-          data_itr["var"]["index"].get<int>() << " or " <<
-          data_itr["src"]["index"].get<int>() << "! Skipping..." << std::endl;
+        std::cout << "Cannot find proc index " << var_index <<
+          " or " << src_index << "! Skipping..." << std::endl;
         continue;
       }
-      auto* p = procs_by_indices[data_itr["var"]["index"].get<int>()];
-      auto* q = procs_by_indices[data_itr["src"]["index"].get<int>()];
-      uvw::Duohash dst(p, data_itr["var"]["label"].get<std::string>());
-      uvw::Duohash src(q, data_itr["src"]["label"].get<std::string>());
+      auto* p = procs_by_indices[var_index];
+      auto* q = procs_by_indices[src_index];
+      uvw::Duohash dst(p, var_obj["label"].get<std::string>());
+      uvw::Duohash src(q, src_obj["label"].get<std::string>());
       if (!link(src, dst))
       {
         std::cerr << "Cannot link between " << src << " & " << dst << std::endl;
@@ -595,24 +620,40 @@ bool uvw::Workspace::from_json(const json& data)
     }
   }
 
-  if (data.find("in") != data.end() &&
-      has_index_(data["in"]["index"].get<int>()))
+  if (data_obj.find("in") != data_obj.end())
   {
-    auto* p = procs_by_indices[data["in"]["index"].get<int>()];
-    auto k_in = uvw::Duohash(p, data["in"]["label"].get<std::string>());
-    if (!set_input(k_in))
+    auto& in_obj = data_obj["in"].get<json::object>();
+    auto in_index = in_obj["index"].get<int64_t>();
+    if (has_index_(in_index))
     {
-      std::cerr << "Cannot set input " << k_in << "!" << std::endl;
+      auto* p = procs_by_indices[in_index];
+      auto k_in = uvw::Duohash(p, in_obj["label"].get<std::string>());
+      if (!set_input(k_in))
+      {
+        std::cerr << "Cannot set input " << k_in << "!" << std::endl;
+      }
+    }
+    else
+    {
+      std::cerr << "Cannot find in index " << in_index << "!" << std::endl;
     }
   }
-  if (data.find("out") != data.end() &&
-      has_index_(data["out"]["index"].get<int>()))
+  if (data_obj.find("out") != data_obj.end())
   {
-    auto* q = procs_by_indices[data["out"]["index"].get<int>()];
-    auto k_out = uvw::Duohash(q, data["out"]["label"].get<std::string>());
-    if (!set_output(k_out))
+    auto& out_obj = data_obj["out"].get<json::object>();
+    auto out_index = out_obj["index"].get<int64_t>();
+    if (has_index_(out_index))
     {
-      std::cerr << "Cannot set output " << k_out << "!" << std::endl;
+      auto* q = procs_by_indices[out_index];
+      auto k_out = uvw::Duohash(q, out_obj["label"].get<std::string>());
+      if (!set_output(k_out))
+      {
+        std::cerr << "Cannot set output " << k_out << "!" << std::endl;
+      }
+    }
+    else
+    {
+      std::cerr << "Cannot find out index " << out_index << "!" << std::endl;
     }
   }
   return true;
@@ -620,33 +661,35 @@ bool uvw::Workspace::from_json(const json& data)
 
 json uvw::Processor::to_json()
 {
-  json data;
-  data["type"] = type_;
-  data["vars"] = json::array();
+  json::object data_obj;
+  data_obj["type"] = json(type_);
+  json::array var_list;
   for (const auto& key : var_keys())
   {
     if (get(key.var_str))
     {
-      data["vars"].push_back(get(key.var_str)->to_json());
+      var_list.push_back(json(get(key.var_str)->to_json()));
     }
   }
-  return data;
+  data_obj["vars"] = json(var_list);
+  return json(data_obj);
 }
 
-bool uvw::Processor::from_json(const json& data)
+bool uvw::Processor::from_json(json& data)
 {
-  if (data.find("vars") != data.end())
+  auto& data_obj = data.get<json::object>();
+  if (data_obj.find("vars") != data_obj.end())
   {
-    for (auto& data_itr : data["vars"])
+    for (auto& data_itr : data_obj["vars"].get<json::array>())
     {
-      uvw::Variable* v = get(data_itr["label"]);
+      auto& var_obj = data_itr.get<json::object>();
+      auto var_label = var_obj["label"].get<std::string>();
+      uvw::Variable* v = get(var_label);
       if (!v)
       {
-        std::cerr << "Cannot find var '" <<
-          data_itr["label"] << "'!" << std::endl;
+        std::cerr << "Cannot find var '" << var_label << "'!" << std::endl;
         return false;
       }
-
       v->from_json(data_itr);
     }
   }
@@ -655,30 +698,36 @@ bool uvw::Processor::from_json(const json& data)
 
 json uvw::Variable::to_json()
 {
-  json data;
-  data["enabled"] = (bool)enabled;
-  data["label"] = label();
-  data["type"] = type_str();
-  for (auto& itr : properties)
+  json::object data_obj;
+  data_obj["enabled"] = json(enabled);
+  data_obj["label"] = json(label());
+  data_obj["type"] = json(type_str());
+  if (properties.size())
   {
-    data["properties"][itr.first] = itr.second;
+    json::object prop_obj;
+    for (auto& itr : properties)
+    {
+      prop_obj[itr.first] = json((int64_t)itr.second);
+    }
+    data_obj["properties"] = json(prop_obj);
   }
-  return data;
+  return json(data_obj);
 }
 
-bool uvw::Variable::from_json(const json& data)
+bool uvw::Variable::from_json(json& data)
 {
+  auto& data_obj = data.get<json::object>();
   properties.clear();
-  if (data.find("properties") != data.end())
+  if (data_obj.find("properties") != data_obj.end())
   {
-    for (auto& itr : data["properties"].items())
+    for (auto& itr : data_obj["properties"].get<json::object>())
     {
-      properties[itr.key()] = itr.value().get<int>();
+      properties[itr.first] = itr.second.get<int64_t>();
     }
   }
-  if (data.find("enabled") != data.end())
+  if (data_obj.find("enabled") != data_obj.end())
   {
-    enabled = data["enabled"].get<bool>();
+    enabled = data_obj["enabled"].get<bool>();
   }
   return true;
 }

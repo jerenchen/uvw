@@ -4,7 +4,7 @@ Universal Variables Workspace (UVW) is a simple C++ framework for managing globa
 
 ### Requirements
 
-UVW utilizes [JSON for Modern C++](https://github.com/nlohmann/json) and [Catch2](https://github.com/catchorg/Catch2) for json serialization and testing, respectively.
+UVW utilizes [PicoJSON](https://github.com/kazuho/picojson) and [Catch2](https://github.com/catchorg/Catch2) for json serialization and testing, respectively.
 
 UVW requires C++14 for "variable templates".
 
