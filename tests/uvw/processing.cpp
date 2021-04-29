@@ -43,33 +43,49 @@ TEST_CASE("Processing...", "[Processing]")
   // run without pre-process set to true (defaults to false)
   // (2 + 3) * 4 = 20
   uvw::var::data_pull = true;
+#ifdef CATCH_CONFIG_ENABLE_BENCHMARKING
   BENCHMARK("Preprocess OFF & Data-pull ON")
   {
     mws.process();
   };
+#else
+  mws.process();
+#endif
   REQUIRE( mult->z_() == 20 );
 
   uvw::var::data_pull = false;
+#ifdef CATCH_CONFIG_ENABLE_BENCHMARKING
   BENCHMARK("Preprocess OFF & Data-pull OFF")
   {
     mws.process();
   };
+#else
+  mws.process();
+#endif
   REQUIRE( mult->z_() == 20 );
 
   // run with pre-process set to true
   // (6 + 3) * 4 = 36
   uvw::var::data_pull = true;
+#ifdef CATCH_CONFIG_ENABLE_BENCHMARKING
   BENCHMARK("Preprocess ON & Data-pull ON")
   {
     mws.process(true);
   };
+#else
+  mws.process(true);
+#endif
   REQUIRE( mult->z_() == 36 );
 
   uvw::var::data_pull = false;
+#ifdef CATCH_CONFIG_ENABLE_BENCHMARKING
   BENCHMARK("Preprocess ON & Data-pull OFF")
   {
     mws.process(true);
   };
+#else
+  mws.process(true);
+#endif
   REQUIRE( mult->z_() == 36 );
 
   // json serialization

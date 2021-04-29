@@ -10,11 +10,18 @@ namespace uvw
 {
   struct Duohash
   {
-    void* raw_ptr;
-    std::string var_str;
+    void* raw_ptr = nullptr;
+    std::string var_str = "";
 
     Duohash(void* proc = nullptr, const std::string& label = ""):
       raw_ptr(proc), var_str(label) {}
+    Duohash(const Duohash& key) {*this = key;}
+    Duohash& operator=(const Duohash& key)
+    {
+      raw_ptr = key.raw_ptr;
+      var_str = key.var_str;
+      return *this;
+    }
 
     friend std::ostream& operator<<(std::ostream& os, const Duohash& key)
     {
@@ -41,8 +48,8 @@ namespace std
   {
     std::size_t operator()(uvw::Duohash const& key) const noexcept
     {
-        return std::hash<void*>{}(key.raw_ptr) ^
-          (std::hash<std::string>{}(key.var_str) << 1);
+      return std::hash<void*>{}(key.raw_ptr) ^
+        (std::hash<std::string>{}(key.var_str) << 1);
     }
   };
 }
