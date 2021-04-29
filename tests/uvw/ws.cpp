@@ -36,6 +36,22 @@ struct C : uvw::Processor
     }
 };
 
+struct M : uvw::Processor
+{
+    uvw::Var<int> u;
+    uvw::Var<int> v;
+    uvw::Var<int> w;
+
+    bool initialize() override
+    {
+        return (
+            reg_var<int>("u", u) &&
+            reg_var<int>("v", v) &&
+            reg_var<int>("w", w)
+        );
+    }
+};
+
 TEST_CASE("Workspace ...", "[ws]")
 {
     // sanity
@@ -150,7 +166,7 @@ TEST_CASE("Workspace ...", "[ws]")
     auto* C_ = ws_.new_proc("C");
     auto& c_ = uvw::ws::ref<Compound>(C_->get("c")->key());
 
-    SECTION("Nexted Vars")
+    SECTION("Compound Vars")
     {
         REQUIRE( a_->link(C_->get("cc")) == true );
         REQUIRE( ws_.set_output(b_->key()) == true ); // re-schedule
@@ -170,6 +186,43 @@ TEST_CASE("Workspace ...", "[ws]")
         c_.comp_.set(1.414213);
         REQUIRE( a_->get() == 1.414213 );
         REQUIRE( b_->get() == 1.414213 );
+    }
+
+    SECTION("Multilinks")
+    {
+        ws_.clear();
+        REQUIRE( uvw::ws::procs().size() == 0 );
+        REQUIRE( uvw::ws::links().size() == 0 );
+        REQUIRE( uvw::ws::vars().size() == 0 );
+        REQUIRE( uvw::ws::workspaces().size() == 1 );
+
+        REQUIRE( uvw::ws::reg_proc("M", ([](){return new M();})) == true );
+        auto* M = ws_.new_proc("M");
+        auto* N = ws_.new_proc("M");
+        auto* O = ws_.new_proc("M");
+        REQUIRE( N->get("v")->link(M->get("u")) == true );
+        REQUIRE( O->get("v")->link(N->get("u")) == true );
+        REQUIRE( N->get("w")->link(M->get("w")) == true );
+        REQUIRE( O->get("w")->link(M->get("w")) == true );
+        REQUIRE( ws_.set_output(O->get("u")->key()) );
+
+        REQUIRE( uvw::ws::procs().size() == 3 );
+        REQUIRE( uvw::ws::links().size() == 4 );
+        REQUIRE( uvw::ws::vars().size() == 9 );
+        REQUIRE( uvw::ws::workspaces().size() == 1 );
+
+        auto data = ws_.to_json();
+        ws_.clear();
+        REQUIRE( uvw::ws::procs().size() == 0 );
+        REQUIRE( uvw::ws::links().size() == 0 );
+        REQUIRE( uvw::ws::vars().size() == 0 );
+        REQUIRE( uvw::ws::workspaces().size() == 1 );
+
+        ws_.from_json(data);
+        REQUIRE( uvw::ws::procs().size() == 3 );
+        REQUIRE( uvw::ws::links().size() == 4 );
+        REQUIRE( uvw::ws::vars().size() == 9 );
+        REQUIRE( uvw::ws::workspaces().size() == 1 );
     }
 
     SECTION("Proc Library")

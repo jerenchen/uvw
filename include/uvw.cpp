@@ -160,6 +160,8 @@ std::string uvw::Workspace::stats()
   res += std::to_string(vars_.size());
   res += " links: ";
   res += std::to_string(links_.size());
+  res += " ws: ";
+  res += std::to_string(ws_.size());
   return res;
 }
 
@@ -232,15 +234,16 @@ bool uvw::Workspace::untrack_(uvw::Workspace* ws_ptr)
 
 void uvw::Workspace::clear()
 {
-  in_ = out_ = Duohash();
-  seq_.clear();
-  procs_by_keys_.clear();
   auto itr = proc_ptrs_.begin();
   while (itr != proc_ptrs_.end())
   {
     delete (*itr);
     itr = proc_ptrs_.erase(itr);
   }
+  seq_.clear();
+  procs_by_keys_.clear();
+  in_ = Duohash();
+  out_ = Duohash();
 }
 
 bool uvw::Workspace::clear_proc_lib()

@@ -38,7 +38,10 @@ namespace uvw
     {
       if (has(key))
       {
-        vars_[key]->unlink();
+        if (!key.is_null())
+        {
+          vars_[key]->unlink();
+        }
         return (vars_.erase(key) > 0);
       }
       return false;
