@@ -78,4 +78,9 @@ TEST_CASE("Duohash...", "[duo]")
         REQUIRE( clone2.var_str == "u" );
         REQUIRE( clone2 == clone );
     }
+
+    REQUIRE( uvw::ws::procs().size() == 2 );
+    REQUIRE( uvw::ws::links().size() == 0 );
+    REQUIRE( uvw::ws::vars().size() == 0 );
+    REQUIRE( uvw::ws::workspaces().size() == 0 );
 }

@@ -10,9 +10,10 @@ namespace uvw
 {
   struct Duohash
   {
-    void* raw_ptr = nullptr;
-    std::string var_str = "";
+    void* raw_ptr ;
+    std::string var_str;
 
+    ~Duohash() {nullify();}
     Duohash(void* proc = nullptr, const std::string& label = ""):
       raw_ptr(proc), var_str(label) {}
     Duohash(const Duohash& key) {*this = key;}

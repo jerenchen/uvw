@@ -39,24 +39,14 @@ namespace uvw
 
     void init()
     {
+      key_.nullify();
+      src_.nullify();
       incoming_.clear();
       enabled = true;
-      data_ptr_ = data_src_ = nullptr;
+      data_ptr_ = nullptr;
+      data_src_ = nullptr;
       properties.clear();
     }
-
-    void copy(const Variable& v)
-    {
-      incoming_ = v.incoming_;
-      enabled = v.enabled;
-      data_ptr_ = v.data_ptr_;
-      data_src_ = v.data_src_;
-      key_ = v.key_;
-      src_ = v.src_;
-      properties = v.properties;
-    }
-
-    Variable(const Duohash& key): key_(key) {init();}
 
     public:
 
@@ -73,7 +63,7 @@ namespace uvw
 
     bool unlink();
     bool link(Variable* src);
-    const Duohash src() {return src_;}
+    const Duohash& src() {return src_;}
 
     virtual void pull() = 0;
     virtual const std::type_index type_index() = 0;
@@ -103,9 +93,6 @@ namespace uvw
     protected:
 
     T value_;
-
-    Var(const Duohash& key):
-      Variable(key) {}
 
     public:
 

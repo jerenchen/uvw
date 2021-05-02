@@ -27,6 +27,18 @@ namespace uvw
     static std::unordered_map<Duohash, Variable*> vars_;
     static std::unordered_map<Duohash, Duohash> links_;
 
+    template<typename T>
+    static bool add_(Var<T>& v)
+    {
+      if (has(v.key()))
+      {
+        std::cout << "Warning: var " << v.key() << " exists!" << std::endl;
+        return false;
+      }
+      vars_[v.key()] = (Variable*)(&v);
+      return true;
+    }
+
     public:
 
     static bool has(const Duohash& key)
@@ -53,18 +65,6 @@ namespace uvw
     }
 
     template<typename T>
-    static bool add(const Duohash& key, Var<T>& v)
-    {
-      if (has(key))
-      {
-        std::cout << "Warning: var " << key << " exists!" << std::endl;
-        return false;
-      }
-      vars_[key] = &v;
-      return true;
-    }
-
-    template<typename T>
     static T& ref(const Duohash& key)
     {
       if (has(key) && key.raw_ptr)
@@ -84,6 +84,7 @@ namespace uvw
     static bool execute(const std::vector<Processor*>& seq, bool preprocess = false);
 
     static std::string stats();
+    static std::string summary();
 
     protected:
 
@@ -98,6 +99,7 @@ namespace uvw
     static bool untrack_(Processor* proc_ptr);
 
     // workspace instance vars/funcs
+
     public:
 
     void clear();
@@ -109,6 +111,7 @@ namespace uvw
     // proc json serialization
     json to_json();
     bool from_json(json& data);
+    std::string to_str() {return to_json().serialize();}
     bool from_str(const std::string& str);
 
     // workspace processing

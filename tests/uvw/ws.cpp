@@ -211,14 +211,14 @@ TEST_CASE("Workspace ...", "[ws]")
         REQUIRE( uvw::ws::vars().size() == 9 );
         REQUIRE( uvw::ws::workspaces().size() == 1 );
 
-        auto data = ws_.to_json();
+        auto json_str = ws_.to_str();
         ws_.clear();
         REQUIRE( uvw::ws::procs().size() == 0 );
         REQUIRE( uvw::ws::links().size() == 0 );
         REQUIRE( uvw::ws::vars().size() == 0 );
         REQUIRE( uvw::ws::workspaces().size() == 1 );
 
-        ws_.from_json(data);
+        ws_.from_str(json_str);
         REQUIRE( uvw::ws::procs().size() == 3 );
         REQUIRE( uvw::ws::links().size() == 4 );
         REQUIRE( uvw::ws::vars().size() == 9 );

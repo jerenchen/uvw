@@ -6,7 +6,7 @@ using namespace uvw;
 #include "common.h"
 
 
-TEST_CASE("Processing...", "[Processing]")
+TEST_CASE("Processors...", "[proc]")
 {
   // ensure ws is empty
   REQUIRE( uvw::ws::procs().size() == 0 );
