@@ -4,7 +4,6 @@
 // static "global" containers
 
 std::unordered_set<uvw::Workspace*> uvw::Workspace::ws_;
-
 std::unordered_set<uvw::Processor*> uvw::Workspace::procs_;
 std::unordered_map<uvw::Duohash, uvw::Duohash> uvw::Workspace::links_;
 std::unordered_map<uvw::Duohash, uvw::Variable*> uvw::Workspace::vars_;
@@ -84,8 +83,8 @@ bool uvw::Variable::link(uvw::Variable* src)
 
   // populate downstream/incoming links
   propagate(src->data_ptr_);
-
   src->incoming_.insert(key_);
+
   uvw::Workspace::links_[key_] = src_;
   return true;
 }
@@ -101,7 +100,7 @@ uvw::Processor* uvw::Variable::proc()
 
 // Processor impl.
 
-uvw::Processor::Processor()
+uvw::Processor::Processor(): type_("UNDEFINED")
 {
   uvw::ws::track_(this);
 }
@@ -162,6 +161,48 @@ std::string uvw::Workspace::stats()
   res += std::to_string(links_.size());
   res += " ws: ";
   res += std::to_string(ws_.size());
+  return res;
+}
+
+std::string uvw::Workspace::summary()
+{
+  std::string res("Summary: Global:\n");
+  res += "Procs:\n";
+  for (auto* proc_ptr : procs_)
+  {
+    res += "  ["; res += proc_ptr->type_str(); res += "]...\n";
+    for (auto& var_key : proc_ptr->var_keys())
+    {
+      res += "    "; res += var_key.var_str; res += "\n";
+    }
+  }
+  res += "Vars:\n";
+  for (auto& var_key : vars_)
+  {
+    res += "    "; res += var_key.first.var_str; res += "\n";
+  }
+  res += "Links:\n";
+  for (auto& itr : links_)
+  {
+    res += "    ";
+    res += itr.first.var_str;
+    res += " - ";
+    res += itr.second.var_str;
+    res += "\n";
+  }
+  res += "Hierarchical:\n";
+  for (auto* ws_ptr : ws_)
+  {
+    res += "WS ---\n";
+    for (auto* proc_ptr : ws_ptr->proc_ptrs())
+    {
+      res += "  ["; res += proc_ptr->type_str(); res += "]...\n";
+      for (auto& var_key : proc_ptr->var_keys())
+      {
+        res += "    "; res += var_key.var_str; res += "\n";
+      }
+    }
+  }
   return res;
 }
 
@@ -237,13 +278,14 @@ void uvw::Workspace::clear()
   auto itr = proc_ptrs_.begin();
   while (itr != proc_ptrs_.end())
   {
-    delete (*itr);
+    untrack_(*itr);
+    //delete (*itr);
     itr = proc_ptrs_.erase(itr);
   }
   seq_.clear();
   procs_by_keys_.clear();
-  in_ = Duohash();
-  out_ = Duohash();
+  in_.nullify();
+  out_.nullify();
 }
 
 bool uvw::Workspace::clear_proc_lib()

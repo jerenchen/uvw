@@ -69,7 +69,7 @@ bool uvw::Processor::reg_var(const std::string& label, Var<T>& v)
     return false;
   }
 
-  if (!uvw::ws::add<T>(key, v))
+  if (!uvw::ws::add_<T>(v))
   {
     std::cout << "Failure: Unable to add var '" << label << "'" << std::endl;
     return false;
